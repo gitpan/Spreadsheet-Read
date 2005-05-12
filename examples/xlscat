@@ -1,0 +1,145 @@
+#!/pro/bin/perl
+
+# xls2cat: show XLS file as Text
+#	  (m)'04 [17-12-2004]
+
+our $VERSION = "1.0";
+
+use strict;
+use warnings;
+
+sub usage ()
+{
+    print STDERR
+	"usage: xlscat [-s <sep>] [-L] [-u] [ Selection ] file.xls\n",
+	"              [-c | -m]       [-u] [ Selection ] file.xls\n",
+	"       -u          Use unformatted values\n",
+	"    Output Text (default):\n",
+	"       -s <sep>    Use separator <sep>. Default '|'\n",
+	"       -L          Line up the columns\n",
+	"    Output CSV:\n",
+	"       -c          Output CSV, separator = ','\n",
+	"       -m          Output CSV, separator = ';'\n",
+	"    Selection:\n",
+	"       -S <sheets> Only print sheets <sheets>. 'all' is a valid set\n",
+	"                   Default only prints the first sheet\n",
+	"       -R <rows>   Only print rows    <rows>. Default is 'all'\n",
+	"       -C <cols>   Only print columns <cols>. Default is 'all'\n";
+    exit;
+    } # usage
+
+@ARGV == 1 and $ARGV[0] eq "-?" || $ARGV[0] =~ m/^-+help$/ and usage ();
+
+use Getopt::Long qw(:config bundling nopermute noignorecase);
+my $opt_c;		# Generate CSV
+my $opt_s = "|";	# Text separator
+my $opt_S = "1";	# Sheets to print
+my $opt_R;		# Rows to print
+my $opt_C;		# Columns to print
+my $opt_L = 0;		# Auto-size/align columns
+my $opt_u = 0;		# Show unformatted values
+my $opt_v = 0;
+GetOptions (
+    "c|csv"		=> sub { $opt_c = "," },
+    "m|ms"		=> sub { $opt_c = ";" },
+    "s|separator=s"	=> \$opt_s,
+    "S|sheets=s"	=> \$opt_S,
+    "R|rows=s"		=> \$opt_R,
+    "C|columns=s"	=> \$opt_C,
+    "L|fit|align"	=> \$opt_L,
+    "u|unformatted"	=> \$opt_u,
+    "v|verbose:1"	=> \$opt_v,
+    ) or usage;
+
+#binmode STDOUT;
+
+if ($opt_c) {
+    $opt_L = 0;	# Cannot align CSV
+    $opt_c =~ m/^1?$/ and $opt_c = ",";
+    $opt_c = Text::CSV_XS->new ({
+	binary       => 1,
+	sep_char     => $opt_c,
+	always_quote => 1,
+	});
+    }
+
+use Data::Dumper;
+use Text::CSV_XS;
+
+@ARGV && -f $ARGV[0] or usage;
+my $file = shift;
+
+use Spreadsheet::Read;
+my $xls = ReadData ($file)	or die "cannot read $file\n";
+$opt_v > 7 and print STDERR Dumper ($xls);
+my $sc  = $xls->[0]{sheets}	or die "No sheets in $file\n";
+$opt_v > 1 and print STDERR "Opened $file with $sc sheets\n";
+
+$opt_S eq "all" and $opt_S = "1..$sc";	# all
+$opt_S =~ s/-$/-$sc/;			# 3,6-
+$opt_S =~ s/-/../g;
+my %print;
+eval "%{\$print{sheet}} = map { \$_ => 1 } $opt_S";
+
+foreach my $si (1 .. $sc) {
+    my @data;
+    exists $print{sheet}{$si} or next;
+    $opt_v and print STDERR "Opening sheet $si ...\n";
+    my $s = $xls->[$si] or next;
+    $opt_v > 5 and print STDERR Dumper ($s);
+    my @r = (1, $s->{maxrow});
+    my @c = (1, $s->{maxcol});
+    my ($sn, $nr, $nc) = ($s->{label}, $r[-1], $c[-1]);
+    $opt_v and print STDERR "$file - [ $sn ] $nr rows, $nc columns\n";
+
+    if (my $rows = $opt_R) {
+	$rows eq "all" and $rows = "1..$nr";	# all
+	$rows =~ s/-$/-$nr/;			# 3,6-
+	$rows =~ s/-/../g;
+	eval "%{\$print{row}} = map { \$_ - 1 => 1 } $rows";
+	}
+    if (my $cols = $opt_C) {
+	$cols eq "all" and $cols = "1..$nc";	# all
+	$cols =~ s/-$/-$nc/;			# 3,6-
+	$cols =~ s/-/../g;
+	eval "\$print{col} = [ map { \$_ - 1  } $cols ]";
+	$nc = @{$print{col}};
+	}
+    $opt_v >= 8 and print Dumper (\%print);
+
+    my ($h, @w) = (0, (0) x $nc); # data height, -width, and default column widths
+    my @align = ("") x $nc;
+    foreach my $r ($r[0] .. $r[1]) {
+	exists $print{row} && !exists $print{row}{$r} and next;
+	my @row = map {
+	    my ($val, $cell) = ("");
+	    $cell = $s->{cell}[$_][$r] and
+		($val = $opt_u ? $cell : $s->{cr2cell ($_, $r)}) =~ s/\s+$//;
+	    $val;
+	    } $c[0] .. $c[1];
+	exists $print{col} and @row = @row[@{$print{col}}];
+	if ($opt_L) {
+	    foreach my $c (0 .. $#row) {
+		my $l = length $row[$c];
+		$l > $w[$c] and $w[$c] = $l;
+		$row[$c] =~ m/\D/ and $align[$c] = "-";
+		}
+	    }
+	if ($opt_c) {	# CSV
+	    $opt_c->combine (@row) or die "Data error: ", $opt_c->error_input, "\n";
+	    print $opt_c->string, "\r\n";
+	    next;
+	    }
+	if ($opt_L) {	# Autofit / Align
+	    push @data, [ @row ];
+	    next;
+	    }
+	print join ($opt_s => @row), "\n";
+	} continue {
+	    ++$h % 100 or printf STDERR "%6d x %6d\r", $nc, $h;
+	    }
+    printf STDERR "%6d x %6d\n", $nc, $h;
+    $opt_L or next;
+    my $fmt = join ($opt_s => map { "%$align[$_]$w[$_]s" } 0 .. $#w)."\n";
+    printf $fmt, @$_ for @data;
+    }

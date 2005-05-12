@@ -1,0 +1,40 @@
+=head1 NAME
+
+Spreadsheet::Read - Meta-Wrapper for reading spreadsheet data
+
+=head1 SYNOPSYS
+
+  use Spreadsheet::Read;
+  my $ref = ReadData ("file.xls");
+
+=head1 DESCRIPTION
+
+Spreadsheet::Read offers a uniformed wrapper to Spreadsheet::ParseExcel
+and Spreadheet::ReadSXC to give the end-user a single point of view to
+various types of spreadsheets and deal with these in a transparent way.
+
+See for more thorrough documentation the pod in the module, or
+
+  $ man Spreadsheet::Read
+
+after installation
+
+=head1 INSTALLATION
+
+  $ perl Makefile.PL
+  $ make
+  $ make test
+  $ make install
+
+=head1 AUTHOR
+
+H.Merijn Brand, <h.m.brand@xs4all.nl>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2005-2005 H.Merijn Brand
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself. 
+
+=cut
