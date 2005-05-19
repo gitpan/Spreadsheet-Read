@@ -6,7 +6,7 @@ files/test.xls
 Makefile.PL
 MANIFEST
 README
-Spreadsheet/Read.pm
+Read.pm
 t/sxc.t
 t/xls.t
 META.yml                                 Module meta-data (added by MakeMaker)

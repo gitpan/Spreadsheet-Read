@@ -17,7 +17,7 @@ my $sxc = ReadData ("test.sxc");
 use strict;
 use warnings;
 
-our $VERSION = "0.01";
+our $VERSION = "0.02";
 sub  Version { $VERSION }
 
 use Exporter;
@@ -211,13 +211,13 @@ the sheets when accessing them by name:
 
 =over 2
 
-=item C<my $ref = ReadData ("file.xls");
+=item C<my $ref = ReadData ("file.xls");>
 
-=item C<my $ref = ReadData ("file.sxc");
+=item C<my $ref = ReadData ("file.sxc");>
 
-=item C<my $ref = ReadData ("content.xml");
+=item C<my $ref = ReadData ("content.xml");>
 
-=item C<my $ref = ReadData ($content);
+=item C<my $ref = ReadData ($content);>
 
 Tries to convert the given file or string to the data structure
 described above.
@@ -232,7 +232,7 @@ traditional cell notation:
   my $cell = cr2cell ( 4, 14); # $cell now "D14"
   my $cell = cr2cell (28,  4); # $cell now "AB4"
 
-=iten C<my ($col, $row) = cell2cr ($cell)>
+=item C<my ($col, $row) = cell2cr ($cell)>
 
 =back
 
