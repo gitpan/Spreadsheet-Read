@@ -1,5 +1,10 @@
 Revision history for Spreadsheet::Read
 
+0.03	Thu 19 May 2005
+
+    - Expanded xlscat to support -i for index
+    - Optionally install xlscat
+
 0.02	Thu 19 May 2005
 
     - Typoes in the doc

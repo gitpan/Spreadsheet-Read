@@ -1,9 +1,9 @@
 #!/pro/bin/perl
 
-# xls2cat: show XLS file as Text
-#	  (m)'04 [17-12-2004]
+# xls2cat: show XLS/SXC file as Text
+#	  (m)'05 [19-05-2005]
 
-our $VERSION = "1.0";
+our $VERSION = "1.1";
 
 use strict;
 use warnings;
@@ -13,10 +13,13 @@ sub usage ()
     print STDERR
 	"usage: xlscat [-s <sep>] [-L] [-u] [ Selection ] file.xls\n",
 	"              [-c | -m]       [-u] [ Selection ] file.xls\n",
+	"               -i                  [ -S sheets ] file.xls\n",
 	"       -u          Use unformatted values\n",
 	"    Output Text (default):\n",
 	"       -s <sep>    Use separator <sep>. Default '|'\n",
 	"       -L          Line up the columns\n",
+	"    Output Index only:\n",
+	"       -i          Show sheet names and size only\n",
 	"    Output CSV:\n",
 	"       -c          Output CSV, separator = ','\n",
 	"       -m          Output CSV, separator = ';'\n",
@@ -32,16 +35,18 @@ sub usage ()
 
 use Getopt::Long qw(:config bundling nopermute noignorecase);
 my $opt_c;		# Generate CSV
-my $opt_s = "|";	# Text separator
-my $opt_S = "1";	# Sheets to print
+my $opt_s;		# Text separator
+my $opt_S;		# Sheets to print
 my $opt_R;		# Rows to print
 my $opt_C;		# Columns to print
+my $opt_i = 0;		# Index
 my $opt_L = 0;		# Auto-size/align columns
 my $opt_u = 0;		# Show unformatted values
 my $opt_v = 0;
 GetOptions (
     "c|csv"		=> sub { $opt_c = "," },
     "m|ms"		=> sub { $opt_c = ";" },
+    "i|index"		=> \$opt_i,
     "s|separator=s"	=> \$opt_s,
     "S|sheets=s"	=> \$opt_S,
     "R|rows=s"		=> \$opt_R,
@@ -52,6 +57,19 @@ GetOptions (
     ) or usage;
 
 #binmode STDOUT;
+
+$opt_i && $opt_L and usage;
+$opt_i && $opt_s and usage;
+$opt_i && $opt_c and usage;
+$opt_i && $opt_u and usage;
+$opt_i && $opt_S and usage;
+$opt_i && $opt_R and usage;
+$opt_i && $opt_C and usage;
+$opt_c && $opt_s and usage;
+
+defined $opt_s or $opt_s = "|";
+defined $opt_S or $opt_S = $opt_i ? "all" : "1";
+$opt_i && $opt_v < 1 and $opt_v = 1;
 
 if ($opt_c) {
     $opt_L = 0;	# Cannot align CSV
@@ -81,16 +99,26 @@ $opt_S =~ s/-/../g;
 my %print;
 eval "%{\$print{sheet}} = map { \$_ => 1 } $opt_S";
 
+my $name_len = 30;
+if ($opt_i) {
+    my $nl = 0;
+    foreach my $sn (keys %{$xls->[0]{sheet}}) {
+	length ($sn) > $nl and $nl = length $sn;
+	}
+    $nl and $name_len = $nl;
+    }
 foreach my $si (1 .. $sc) {
     my @data;
     exists $print{sheet}{$si} or next;
-    $opt_v and print STDERR "Opening sheet $si ...\n";
+    $opt_v > 1 and print STDERR "Opening sheet $si ...\n";
     my $s = $xls->[$si] or next;
     $opt_v > 5 and print STDERR Dumper ($s);
     my @r = (1, $s->{maxrow});
     my @c = (1, $s->{maxcol});
     my ($sn, $nr, $nc) = ($s->{label}, $r[-1], $c[-1]);
-    $opt_v and print STDERR "$file - [ $sn ] $nr rows, $nc columns\n";
+    $opt_v and printf STDERR "%s - %02d: [ %-*s ] %3d Cols, %5d Rows\n",
+	$file, $si, $name_len, $sn, $nc, $nr;
+    $opt_i and next;
 
     if (my $rows = $opt_R) {
 	$rows eq "all" and $rows = "1..$nr";	# all
