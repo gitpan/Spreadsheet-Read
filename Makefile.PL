@@ -15,6 +15,7 @@ my %wm = (
     PREREQ_PM    => {
 	Spreadsheet::ReadSXC	=> 0.12,
 	Spreadsheet::ParseExcel	=> 0.26,
+	Text::CSV_XS		=> 0.00,
 	},
     );
 

@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 273;
+use Test::More tests => 274;
 
 use Spreadsheet::Read;
 
@@ -13,13 +13,22 @@ my $content;
     $content = <$xml>;
     }
 
+{   my $ref;
+    $ref = ReadData ("no_such_file.sxc");
+    ok (!defined $ref, "Nonexistent file");
+    # Too noisy
+    #eval { $ref = ReadData ("files/empty.sxc") };
+    #ok (!defined $ref, "Empty file");
+    #like ($@, qr/too short/);
+    }
+
 foreach my $base ( [ "files/test.sxc",		"Read/Parse sxc file" ],
 		   [ "files/content.xml",	"Read/Parse xml file" ],
 		   [ $content,			"Parse xml data" ],
 		   ) {
     my ($txt, $msg) = @$base;
     my $sxc;
-    ok ($sxc = ReadData ($content), $msg);
+    ok ($sxc = ReadData ($txt), $msg);
 
     ok (1, "Sheet 1");
     # Simple sheet with cells filled with the cell label:

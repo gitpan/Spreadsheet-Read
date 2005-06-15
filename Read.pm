@@ -9,23 +9,26 @@ Spreadsheet::Read - Read the data from a spreadsheet
 =head1 SYNOPSYS
 
 use Spreadsheet::Read;
-my $xls = ReadData ("test.xls");
+my $csv = ReadData ("test.csv", sep => ";");
 my $sxc = ReadData ("test.sxc");
+my $xls = ReadData ("test.xls");
 
 =cut
 
 use strict;
 use warnings;
 
-our $VERSION = "0.03";
+our $VERSION = "0.04";
 sub  Version { $VERSION }
 
 use Exporter;
 our @ISA     = qw( Exporter );
 our @EXPORT  = qw( ReadData cell2cr cr2cell );
 
+use File::Temp           qw( );
 use Spreadsheet::ReadSXC qw( read_sxc read_xml_file read_xml_string );
 use Spreadsheet::ParseExcel;
+use Text::CSV_XS;
 
 my  $debug = 0;
 
@@ -56,12 +59,79 @@ sub cell2cr ($)
     ($c, $r);
     } # cell2cr
 
-sub ReadData ($)
+sub ReadData ($;@)
 {
-    my $txt = shift				or  return;
-    ref $txt					and return;
+    my $txt = shift	or  return;
+    ref $txt		and return;	# TODO: support IO stream
 
-    if ($txt =~ m/\.(xls)$/i and -f $txt) {
+    my $tmpfile;
+
+    my %opt = @_ && ref ($_[0]) eq "HASH" ? @{shift@_} : @_;
+    defined $opt{rc}	or $opt{rc}	= 1;
+    defined $opt{cell}	or $opt{cell}	= 1;
+
+    # CSV not supported from streams
+    if ($txt =~ m/\.(csv)$/i and -f $txt) {
+	open my $in, "< $txt" or return;
+	my $csv;
+	my @data = (
+	    {	type   => "csv",
+		sheets => 1,
+		sheet  => { $txt => 1 },
+		},
+	    {	label	=> $txt,
+		maxrow	=> 0,
+		maxcol	=> 0,
+		cell	=> [],
+		},
+	    );
+	while (<$in>) {
+	    unless ($csv) {
+		my $quo = defined $opt{quote} ? $opt{quote} : '"';
+		my $sep = # If explicitely set, use it
+		   defined $opt{sep} ? $opt{sep} :
+		       # otherwise start auto-detect with quoted strings
+		       m/["\d];["\d;]/  ? ";"  :
+		       m/["\d],["\d,]/  ? ","  :
+		       m/["\d]\t["\d,]/ ? "\t" :
+		       # If neither, then for unquoted strings
+		       m/\w;[\w;]/      ? ";"  :
+		       m/\w,[\w,]/      ? ","  :
+		       m/\w\t[\w,]/     ? "\t" :
+					  ","  ;
+		$csv = Text::CSV_XS->new ({
+		    sep_char   => $sep,
+		    quote_char => $quo,
+		    binary     => 1,
+		    });
+		}
+	    $csv->parse ($_);
+	    my @row = $csv->fields () or next;
+	    my $r = ++$data[1]{maxcol};
+	    @row > $data[1]{maxrow} and $data[1]{maxrow} = @row;
+	    foreach my $c (0 .. $#row) {
+		my $val = $row[$c];
+		my $cell = cr2cell ($c + 1, $r);
+		$opt{rc}   and $data[1]{cell}[$c + 1][$r] = $val;
+		$opt{cell} and $data[1]{$cell} = $val;
+		}
+	    }
+	for (@{$data[1]{cell}}) {
+	    defined $_ or $_ = [];
+	    }
+	close $in;
+	return [ @data ];
+	}
+
+    # From /etc/magic: Microsoft Office Document
+    if ($txt =~ m/^(\376\067\0\043
+		   |\320\317\021\340\241\261\032\341
+		   |\333\245-\0\0\0)/x) {
+	$tmpfile = File::Temp->new (SUFFIX => ".xls", UNLINK => 1);
+	print $tmpfile $txt;
+	$txt = "$tmpfile";
+	}
+    if ($txt =~ m/\.xls$/i and -f $txt) {
 	$debug and print STDERR "Opening XLS $txt\n";
 	my $oBook = Spreadsheet::ParseExcel::Workbook->Parse ($txt);
 	my @data = ( {
@@ -73,24 +143,72 @@ sub ReadData ($)
 	foreach my $oWkS (@{$oBook->{Worksheet}}) {
 	    my %sheet = (
 		label	=> $oWkS->{Name},
-		maxrow	=> $oWkS->{MaxRow} + 1,
-		maxcol	=> $oWkS->{MaxCol} + 1,
+		maxrow	=> 0,
+		maxcol	=> 0,
 		cell	=> [],
 		);
+	    exists $oWkS->{MaxRow} and $sheet{maxrow} = $oWkS->{MaxRow} + 1;
+	    exists $oWkS->{MaxCol} and $sheet{maxcol} = $oWkS->{MaxCol} + 1;
 	    my $sheet_idx = 1 + @data;
 	    $debug and print STDERR "\tSheet $sheet_idx '$sheet{label}' $sheet{maxrow} x $sheet{maxcol}\n";
-	    foreach my $r ($oWkS->{MinRow} .. $sheet{maxrow}) { 
-		foreach my $c ($oWkS->{MinCol} .. $sheet{maxcol}) { 
-		    my $oWkC = $oWkS->{Cells}[$r][$c] or next;
-		    my $val = $oWkC->{Val} or next;
-		    my $cell = cr2cell ($c + 1, $r + 1);
-		    $sheet{cell}[$c + 1][$r + 1] = $val;	# Original
-		    $sheet{$cell} = $oWkC->Value;		# Formatted
+	    if (exists $oWkS->{MinRow}) {
+		foreach my $r ($oWkS->{MinRow} .. $sheet{maxrow}) { 
+		    foreach my $c ($oWkS->{MinCol} .. $sheet{maxcol}) { 
+			my $oWkC = $oWkS->{Cells}[$r][$c] or next;
+			my $val = $oWkC->{Val} or next;
+			my $cell = cr2cell ($c + 1, $r + 1);
+			$opt{rc}   and $sheet{cell}[$c + 1][$r + 1] = $val;	# Original
+			$opt{cell} and $sheet{$cell} = $oWkC->Value;	# Formatted
+			}
 		    }
 		}
+	    for (@{$sheet{cell}}) {
+		defined $_ or $_ = [];
+		}
 	    push @data, { %sheet };
-	    $data[0]{sheets}++;
+#	    $data[0]{sheets}++;
 	    $data[0]{sheet}{$sheet{label}} = $#data;
+	    }
+	return [ @data ];
+	}
+
+    if ($txt =~ m/^# .*SquirrelCalc/ or $txt =~ m/\.sc$/ && -f $txt) {
+	if (-f $txt) {
+	    local $/;
+	    open my $sc, "< $txt" or return;
+	    $txt = <$sc>;
+	    $txt =~ m/\S/ or return;
+	    }
+	my @data = (
+	    {	type   => "sc",
+		sheets => 1,
+		sheet  => { sheet => 1 },
+		},
+	    {	label	=> "sheet",
+		maxrow	=> 0,
+		maxcol	=> 0,
+		cell	=> [],
+		},
+	    );
+
+	for (split m/\s*[\r\n]\s*/, $txt) {
+	    if (m/^dimension.*of (\d+) rows.*of (\d+) columns/i) {
+		@{$data[1]}{qw(maxrow maxcol)} = ($1, $2);
+		next;
+		}
+	    s/^r(\d+)c(\d+)\s*=\s*// or next;
+	    my ($c, $r) = map { $_ + 1 } $2, $1;
+	    if (m/.* {(.*)}$/ or m/"(.*)"/) {
+		my $cell = cr2cell ($c, $r);
+		$opt{rc}   and $data[1]{cell}[$c][$r] = $1;
+		$opt{cell} and $data[1]{$cell} = $1;
+		next;
+		}
+	    # Now only formula's remain. Ignore for now
+	    # r67c7 = [P2L] 2*(1000*r67c5-60)
+	    }
+	for (@{$data[1]{cell}}) {
+	    defined $_ or $_ = [];
 	    }
 	return [ @data ];
 	}
@@ -137,8 +255,12 @@ sub ReadData ($)
 			my $C = $c + 1;
 			$C > $sheet{maxcol} and $sheet{maxcol} = $C;
 			my $cell = cr2cell ($C, $r + 1);
-			$sheet{cell}[$C][$r + 1] = $sheet{$cell} = $val;
+			$opt{rc}   and $sheet{cell}[$C][$r + 1] = $val;
+			$opt{cell} and $sheet{$cell} = $val;
 			}
+		    }
+		for (@{$sheet{cell}}) {
+		    defined $_ or $_ = [];
 		    }
 		$debug and print STDERR "\tSheet $sheet_idx '$sheet{label}' $sheet{maxrow} x $sheet{maxcol}\n";
 		push @data, { %sheet };
@@ -163,6 +285,8 @@ module that does the actual spreadsheet scanning.
 For OpenOffice this module uses Spreadsheet::ReadSXC
 
 For Excel this module uses Spreadsheet::ParseExcel
+
+For CSV this module uses Text::CSV_XS
 
 =head2 Data structure
 
@@ -211,6 +335,10 @@ the sheets when accessing them by name:
 
 =over 2
 
+=item C<my $ref = ReadData ($source [, option => value [, ... ]]);>
+
+=item C<my $ref = ReadData ("file.csv", sep =&gt; ',', quote => '"');>
+
 =item C<my $ref = ReadData ("file.xls");>
 
 =item C<my $ref = ReadData ("file.sxc");>
@@ -219,10 +347,35 @@ the sheets when accessing them by name:
 
 =item C<my $ref = ReadData ($content);>
 
-Tries to convert the given file or string to the data structure
-described above.
+Tries to convert the given file, string, or stream to the data
+structure described above.
+
+Precessing data from a stream or content is supported for Excel (through a
+File::Temp temporary file), or for XML (OpenOffice), but not for CSV.
 
 Currently ReadSXC does not preserve sheet order.
+
+Currently supported options are:
+
+=over 2
+
+=item cells
+
+Control the generation of named cells ("A1" etc). Default is true.
+
+=item rc
+
+Control the generation of the {cell}[c][r] entries. Default is true.
+
+=item sep
+
+Set separator for CSV. Default is comma C<,>.
+
+=item quote
+
+Set quote character for CSV. Default is C<">.
+
+=back
 
 =item C<my $cell = cr2cell (col, row)>
 
@@ -279,7 +432,7 @@ names C<meta>, or just be new values in the C<attr> hashes.
 
 =item Other spreadsheet formats
 
-I consider adding CSV
+I consider adding any spreadsheet interface that offers a usable API.
 
 =item Safety / flexibility
 
@@ -297,6 +450,12 @@ OO interface.
 =head1 SEE ALSO
 
 =over 2
+
+=item Text::CSV_XS
+
+http://search.cpan.org/~jwied/
+
+A pure perl version is available on http://search.cpan.org/~makamaka/
 
 =item Spreadsheet::ParseExcel
 

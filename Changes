@@ -1,5 +1,17 @@
 Revision history for Spreadsheet::Read
 
+0.04	Tue 14 Jun 2005
+
+    - Changed TODO
+    - Added options "rc", and "cell"
+    - Added CSV
+    - Added CSV options "sep", and "quote"
+    - Support xls from content
+    - Added basic support for SquirrelCalc format
+    - Updated pod
+    - xlscat -R option for row selection was a one-off
+    - xlscat now supports selecting fields with -F
+
 0.03	Thu 19 May 2005
 
     - Expanded xlscat to support -i for index

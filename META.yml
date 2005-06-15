@@ -1,12 +1,13 @@
 # http://module-build.sourceforge.net/META-spec.html
 #XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
 name:         Spreadsheet-Read
-version:      0.03
+version:      0.04
 version_from: Read.pm
 installdirs:  site
 requires:
     Spreadsheet::ParseExcel:       0.26
     Spreadsheet::ReadSXC:          0.12
+    Text::CSV_XS:                  0
 
 distribution_type: module
-generated_by: ExtUtils::MakeMaker version 6.28
+generated_by: ExtUtils::MakeMaker version 6.30

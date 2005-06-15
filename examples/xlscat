@@ -8,8 +8,9 @@ our $VERSION = "1.1";
 use strict;
 use warnings;
 
-sub usage ()
+sub usage (;$)
 {
+    my ($msg) = (@_, "");
     print STDERR
 	"usage: xlscat [-s <sep>] [-L] [-u] [ Selection ] file.xls\n",
 	"              [-c | -m]       [-u] [ Selection ] file.xls\n",
@@ -27,7 +28,9 @@ sub usage ()
 	"       -S <sheets> Only print sheets <sheets>. 'all' is a valid set\n",
 	"                   Default only prints the first sheet\n",
 	"       -R <rows>   Only print rows    <rows>. Default is 'all'\n",
-	"       -C <cols>   Only print columns <cols>. Default is 'all'\n";
+	"       -C <cols>   Only print columns <cols>. Default is 'all'\n",
+	"       -F <flds>   Only fields <flds> e.g. -FA3,B16\n";
+    $msg and print STDERR "$msg\n";
     exit;
     } # usage
 
@@ -39,6 +42,7 @@ my $opt_s;		# Text separator
 my $opt_S;		# Sheets to print
 my $opt_R;		# Rows to print
 my $opt_C;		# Columns to print
+my $opt_F = "";		# Fields to print
 my $opt_i = 0;		# Index
 my $opt_L = 0;		# Auto-size/align columns
 my $opt_u = 0;		# Show unformatted values
@@ -51,21 +55,23 @@ GetOptions (
     "S|sheets=s"	=> \$opt_S,
     "R|rows=s"		=> \$opt_R,
     "C|columns=s"	=> \$opt_C,
+    "F|fields=s"	=> \$opt_F,
     "L|fit|align"	=> \$opt_L,
     "u|unformatted"	=> \$opt_u,
     "v|verbose:1"	=> \$opt_v,
-    ) or usage;
+    ) or usage "GetOpt: $@";
 
 #binmode STDOUT;
 
-$opt_i && $opt_L and usage;
-$opt_i && $opt_s and usage;
-$opt_i && $opt_c and usage;
-$opt_i && $opt_u and usage;
-$opt_i && $opt_S and usage;
-$opt_i && $opt_R and usage;
-$opt_i && $opt_C and usage;
-$opt_c && $opt_s and usage;
+$opt_i && $opt_L and usage "Options i and L are mutually exclusive";
+$opt_i && $opt_s and usage "Options i and s are mutually exclusive";
+$opt_i && $opt_c and usage "Options i and c are mutually exclusive";
+$opt_i && $opt_u and usage "Options i and u are mutually exclusive";
+$opt_i && $opt_S and usage "Options i and S are mutually exclusive";
+$opt_i && $opt_R and usage "Options i and R are mutually exclusive";
+$opt_i && $opt_C and usage "Options i and C are mutually exclusive";
+$opt_i && $opt_F and usage "Options i and F are mutually exclusive";
+$opt_c && $opt_s and usage "Options c and s are mutually exclusive";
 
 defined $opt_s or $opt_s = "|";
 defined $opt_S or $opt_S = $opt_i ? "all" : "1";
@@ -81,10 +87,10 @@ if ($opt_c) {
 	});
     }
 
-use Data::Dumper;
+use Data::Dumper; $Data::Dumper::Sortkeys = 1;
 use Text::CSV_XS;
 
-@ARGV && -f $ARGV[0] or usage;
+@ARGV && -f $ARGV[0] or usage "the first argument is not a file";
 my $file = shift;
 
 use Spreadsheet::Read;
@@ -99,6 +105,8 @@ $opt_S =~ s/-/../g;
 my %print;
 eval "%{\$print{sheet}} = map { \$_ => 1 } $opt_S";
 
+my $v_fmt = $opt_C || $opt_R || $opt_F ? "" : "%6d x %6d%s";
+
 my $name_len = 30;
 if ($opt_i) {
     my $nl = 0;
@@ -107,6 +115,7 @@ if ($opt_i) {
 	}
     $nl and $name_len = $nl;
     }
+my @opt_F = split m/[^A-Z\d]+/ => $opt_F;
 foreach my $si (1 .. $sc) {
     my @data;
     exists $print{sheet}{$si} or next;
@@ -120,11 +129,18 @@ foreach my $si (1 .. $sc) {
 	$file, $si, $name_len, $sn, $nc, $nr;
     $opt_i and next;
 
+    if (@opt_F) {
+	foreach my $fld (@opt_F) {
+	    print "$fld:",$s->{$fld},"\n";
+	    }
+	next;
+	}
+
     if (my $rows = $opt_R) {
 	$rows eq "all" and $rows = "1..$nr";	# all
 	$rows =~ s/-$/-$nr/;			# 3,6-
 	$rows =~ s/-/../g;
-	eval "%{\$print{row}} = map { \$_ - 1 => 1 } $rows";
+	eval "%{\$print{row}} = map { \$_ => 1 } $rows";
 	}
     if (my $cols = $opt_C) {
 	$cols eq "all" and $cols = "1..$nc";	# all
@@ -164,9 +180,9 @@ foreach my $si (1 .. $sc) {
 	    }
 	print join ($opt_s => @row), "\n";
 	} continue {
-	    ++$h % 100 or printf STDERR "%6d x %6d\r", $nc, $h;
+	    ++$h % 100 or printf STDERR $v_fmt, $nc, $h, "\r";
 	    }
-    printf STDERR "%6d x %6d\n", $nc, $h;
+    printf STDERR $v_fmt, $nc, $h, "\n";
     $opt_L or next;
     my $fmt = join ($opt_s => map { "%$align[$_]$w[$_]s" } 0 .. $#w)."\n";
     printf $fmt, @$_ for @data;

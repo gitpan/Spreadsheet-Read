@@ -1,12 +1,23 @@
 Changes
 examples/xlscat
 files/content.xml
+files/empty.csv
+files/empty.sc
+files/empty.sxc
+files/empty.xls
+files/macosx.xls
+files/test.csv
+files/test_m.csv
+files/test_x.csv
+files/test.sc
 files/test.sxc
 files/test.xls
 Makefile.PL
 MANIFEST
 README
 Read.pm
+t/csv.t
+t/sc.t
 t/sxc.t
 t/xls.t
 META.yml                                 Module meta-data (added by MakeMaker)
