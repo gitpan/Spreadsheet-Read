@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 107;
+use Test::More tests => 114;
 
 use Spreadsheet::Read;
 
@@ -16,6 +16,15 @@ use Spreadsheet::Read;
 
 my $csv;
 ok ($csv = ReadData ("files/test.csv"),	"Read/Parse csv file");
+
+ok (1, "Base values");
+is (ref $csv,			"ARRAY",	"Return type");
+is ($csv->[0]{type},		"csv",		"Spreadsheet type");
+is ($csv->[0]{sheets},		1,		"Sheet count");
+is (ref $csv->[0]{sheet},	"HASH",		"Sheet list");
+is (scalar keys %{$csv->[0]{sheet}},
+				1,		"Sheet list count");
+cmp_ok ($csv->[0]{version},	">=",	0.01,	"Parser version");
 
 ok (1, "Defined fields");
 foreach my $cell (qw( A1 A2 A3 A4 B1 B2 B4 C3 C4 D1 D3 )) {

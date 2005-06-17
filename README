@@ -26,6 +26,13 @@ after installation
   $ make test
   $ make install
 
+=head1 TODO
+
+  * Make tests for examples/xlscat
+  * Field attributes (See Read.pm - TODO)
+  * Support Parsers native module options
+  * PreReq modules should be optional
+
 =head1 AUTHOR
 
 H.Merijn Brand, <h.m.brand@xs4all.nl>

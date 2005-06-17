@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 274;
+use Test::More tests => 298;
 
 use Spreadsheet::Read;
 
@@ -29,6 +29,16 @@ foreach my $base ( [ "files/test.sxc",		"Read/Parse sxc file" ],
     my ($txt, $msg) = @$base;
     my $sxc;
     ok ($sxc = ReadData ($txt), $msg);
+
+    ok (1, "Base values");
+    is (ref $sxc,		"ARRAY",	"Return type");
+    is ($sxc->[0]{type},	"sxc",		"Spreadsheet type");
+    is ($sxc->[0]{sheets},	2,		"Sheet count");
+    is (ref $sxc->[0]{sheet},	"HASH",		"Sheet list");
+    is (scalar keys %{$sxc->[0]{sheet}},
+				2,		"Sheet list count");
+    # This should match the version required in Makefile.PL's PREREQ_PM
+    cmp_ok ($sxc->[0]{version}, ">=",	0.12,	"Parser version");
 
     ok (1, "Sheet 1");
     # Simple sheet with cells filled with the cell label:
@@ -84,5 +94,13 @@ foreach my $base ( [ "files/test.sxc",		"Read/Parse sxc file" ],
 	my ($c, $r) = cell2cr ($cell);
 	is ($sxc->[2]{cell}[$c][$r],	undef,	"Unformatted cell $cell");
 	is ($sxc->[2]{$cell},		undef,	"Formatted   cell $cell");
+	}
+
+    # Sheet order
+    my @sheets = map { $sxc->[$_]{label} } 1 .. $sxc->[0]{sheets};
+    SKIP: {
+	$sxc->[0]{version} < 0.20 and
+	    skip "Not supported", 1;
+	is ("@sheets", "@{['Sheet1','Second Sheet']}", "Sheet order");
 	}
     }

@@ -1,5 +1,12 @@
 Revision history for Spreadsheet::Read
 
+0.05	Thu 17 Jun 2005
+
+    - Spreadsheet::ReadSXC >= 0.20 supports sheet order
+    - Spreadsheet::ReadSXC has new data structure (we still support the old)
+    - Added "version" to the meta data for parser version
+    - More tests
+
 0.04	Tue 14 Jun 2005
 
     - Changed TODO

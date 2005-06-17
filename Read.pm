@@ -8,17 +8,17 @@ Spreadsheet::Read - Read the data from a spreadsheet
 
 =head1 SYNOPSYS
 
-use Spreadsheet::Read;
-my $csv = ReadData ("test.csv", sep => ";");
-my $sxc = ReadData ("test.sxc");
-my $xls = ReadData ("test.xls");
+ use Spreadsheet::Read;
+ my $csv = ReadData ("test.csv", sep => ";");
+ my $sxc = ReadData ("test.sxc");
+ my $xls = ReadData ("test.xls");
 
 =cut
 
 use strict;
 use warnings;
 
-our $VERSION = "0.04";
+our $VERSION = "0.05";
 sub  Version { $VERSION }
 
 use Exporter;
@@ -75,9 +75,10 @@ sub ReadData ($;@)
 	open my $in, "< $txt" or return;
 	my $csv;
 	my @data = (
-	    {	type   => "csv",
-		sheets => 1,
-		sheet  => { $txt => 1 },
+	    {	type	=> "csv",
+		version	=> $Text::CSV_XS::VERSION,
+		sheets	=> 1,
+		sheet	=> { $txt => 1 },
 		},
 	    {	label	=> $txt,
 		maxrow	=> 0,
@@ -135,9 +136,10 @@ sub ReadData ($;@)
 	$debug and print STDERR "Opening XLS $txt\n";
 	my $oBook = Spreadsheet::ParseExcel::Workbook->Parse ($txt);
 	my @data = ( {
-	    type   => "xls",
-	    sheets => $oBook->{SheetCount},
-	    sheet  => {},
+	    type	=> "xls",
+	    version	=> $Spreadsheet::ParseExcel::VERSION,
+	    sheets	=> $oBook->{SheetCount},
+	    sheet	=> {},
 	    } );
 	$debug and print STDERR "\t$data[0]{sheets} sheets\n";
 	foreach my $oWkS (@{$oBook->{Worksheet}}) {
@@ -180,9 +182,10 @@ sub ReadData ($;@)
 	    $txt =~ m/\S/ or return;
 	    }
 	my @data = (
-	    {	type   => "sc",
-		sheets => 1,
-		sheet  => { sheet => 1 },
+	    {	type	=> "sc",
+		version	=> undef,
+		sheets	=> 1,
+		sheet	=> { sheet => 1 },
 		},
 	    {	label	=> "sheet",
 		maxrow	=> 0,
@@ -214,14 +217,15 @@ sub ReadData ($;@)
 	}
 
     if ($txt =~ m/^<\?xml/ or -f $txt) {
+	my $sxc_options = { OrderBySheet => 1 }; # New interface 0.20 and up
 	my $sxc;
 	   if ($txt =~ m/\.sxc$/i) {
 	    $debug and print STDERR "Opening SXC $txt\n";
-	    $sxc = read_sxc ($txt)		or  return;
+	    $sxc = read_sxc      ($txt, $sxc_options)	or  return;
 	    }
 	elsif ($txt =~ m/\.xml$/i) {
 	    $debug and print STDERR "Opening XML $txt\n";
-	    $sxc = read_xml_file ($txt)	or  return;
+	    $sxc = read_xml_file ($txt, $sxc_options)	or  return;
 	    }
 	# need to test on pattern to prevent stat warning
 	# on filename with newline
@@ -231,17 +235,26 @@ sub ReadData ($;@)
 	    local $/;
 	    $txt = <$f>;
 	    }
-	!$sxc && $txt =~ m/^<\?xml/i and $sxc = read_xml_string ($txt);
+	!$sxc && $txt =~ m/^<\?xml/i and
+	    $sxc = read_xml_string ($txt, $sxc_options);
 	if ($sxc) {
 	    my @data = ( {
-		type   => "sxc",
-		sheets => 0,
-		sheet  => {},
+		type	=> "sxc",
+		version	=> $Spreadsheet::ReadSXC::VERSION,
+		sheets	=> 0,
+		sheet	=> {},
 		} );
-	    foreach my $sheet (keys %$sxc) {
-		my @sheet = @{$sxc->{$sheet}};
+	    my @sheets = ref $sxc eq "HASH"	# < 0.20
+		? map {
+		    {   label => $_,
+			data  => $sxc->{$_},
+			}
+		    } keys %$sxc
+		: @{$sxc};
+	    foreach my $sheet (@sheets) {
+		my @sheet = @{$sheet->{data}};
 		my %sheet = (
-		    label	=> $sheet,
+		    label	=> $sheet->{label},
 		    maxrow	=> scalar @sheet,
 		    maxcol	=> 0,
 		    cell	=> [],
@@ -279,7 +292,7 @@ sub ReadData ($;@)
 =head1 DESCRIPTION
 
 Spreadsheet::Read tries to transparantly read *any* spreadsheet and
-return it's content in a universal manner independant of the parsing
+return its content in a universal manner independent of the parsing
 module that does the actual spreadsheet scanning.
 
 For OpenOffice this module uses Spreadsheet::ReadSXC
@@ -288,18 +301,21 @@ For Excel this module uses Spreadsheet::ParseExcel
 
 For CSV this module uses Text::CSV_XS
 
+For SquirrelCalc there is a very simplistic built-in parser
+
 =head2 Data structure
 
 The data is returned as an array reference:
 
   $ref = [
  	# Entry 0 is the overall control hash
- 	{ sheets => 2,
-	  sheet  => {
+ 	{ sheets  => 2,
+	  sheet   => {
 	    "Sheet 1"	=> 1,
 	    "Sheet 2"	=> 2,
 	    },
-	  type   => "xls",
+	  type    => "xls",
+	  version => 0.26,
 	  },
  	# Entry 1 is the first sheet
  	{ label  => "Sheet 1",
@@ -353,7 +369,7 @@ structure described above.
 Precessing data from a stream or content is supported for Excel (through a
 File::Temp temporary file), or for XML (OpenOffice), but not for CSV.
 
-Currently ReadSXC does not preserve sheet order.
+ReadSXC does preserve sheet order as of version 0.20.
 
 Currently supported options are:
 
