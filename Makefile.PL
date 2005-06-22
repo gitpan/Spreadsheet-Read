@@ -16,6 +16,9 @@ my %wm = (
 	Spreadsheet::ReadSXC	=> 0.12,
 	Spreadsheet::ParseExcel	=> 0.26,
 	Text::CSV_XS		=> 0.00,
+
+	# Core modules
+	File::Temp		=> 0.14,
 	},
     );
 

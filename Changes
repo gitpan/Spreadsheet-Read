@@ -1,5 +1,9 @@
 Revision history for Spreadsheet::Read
 
+0.06	Thu 17 Jun 2005
+
+    - 
+
 0.05	Thu 17 Jun 2005
 
     - Spreadsheet::ReadSXC >= 0.20 supports sheet order

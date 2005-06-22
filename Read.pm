@@ -18,7 +18,7 @@ Spreadsheet::Read - Read the data from a spreadsheet
 use strict;
 use warnings;
 
-our $VERSION = "0.05";
+our $VERSION = "0.06";
 sub  Version { $VERSION }
 
 use Exporter;
@@ -278,7 +278,7 @@ sub ReadData ($;@)
 		$debug and print STDERR "\tSheet $sheet_idx '$sheet{label}' $sheet{maxrow} x $sheet{maxcol}\n";
 		push @data, { %sheet };
 		$data[0]{sheets}++;
-		$data[0]{sheet}{$sheet} = $#data;
+		$data[0]{sheet}{$sheet->{label}} = $#data;
 		}
 	    return [ @data ];
 	    }
@@ -485,6 +485,14 @@ http://search.cpan.org/~terhechte/
 
 http://search.cpan.org/~jwied/
 http://search.cpan.org/~alancitt/
+
+=item Spreadsheet::ConvertAA
+
+http://search.cpan.org/~nkh/ for a faster set of cell2cr () / cr2cell () pair
+
+=item Spreadsheet::BasicRead
+
+http://search.cpan.org/~gng/ for xlscat likewise functionality (Excel only)
 
 =back
 

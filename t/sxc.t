@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 298;
+use Test::More tests => 301;
 
 use Spreadsheet::Read;
 
@@ -97,6 +97,7 @@ foreach my $base ( [ "files/test.sxc",		"Read/Parse sxc file" ],
 	}
 
     # Sheet order
+    ok (exists $sxc->[0]{sheet}{Sheet1}, "Sheet labels in metadata");
     my @sheets = map { $sxc->[$_]{label} } 1 .. $sxc->[0]{sheets};
     SKIP: {
 	$sxc->[0]{version} < 0.20 and

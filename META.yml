@@ -1,10 +1,11 @@
 # http://module-build.sourceforge.net/META-spec.html
 #XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
 name:         Spreadsheet-Read
-version:      0.05
+version:      0.06
 version_from: Read.pm
 installdirs:  site
 requires:
+    File::Temp:                    0.14
     Spreadsheet::ParseExcel:       0.26
     Spreadsheet::ReadSXC:          0.12
     Text::CSV_XS:                  0
