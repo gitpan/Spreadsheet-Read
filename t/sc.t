@@ -3,9 +3,15 @@
 use strict;
 use warnings;
 
-use Test::More tests => 13;
+use Test::More;
 
 use Spreadsheet::Read;
+if (Spreadsheet::Read::parses ("sc")) {
+    plan tests => 13;
+    }
+else {
+    plan skip_all => "No SquirelCalc parser found";
+    }
 
 {   my $ref;
     $ref = ReadData ("no_such_file.sc");

@@ -18,21 +18,47 @@ Spreadsheet::Read - Read the data from a spreadsheet
 use strict;
 use warnings;
 
-our $VERSION = "0.06";
+our $VERSION = "0.07";
 sub  Version { $VERSION }
 
 use Exporter;
-our @ISA     = qw( Exporter );
-our @EXPORT  = qw( ReadData cell2cr cr2cell );
+our @ISA       = qw( Exporter );
+our @EXPORT    = qw( ReadData cell2cr cr2cell );
+our @EXPORT_OK = qw( parses rows );
 
 use File::Temp           qw( );
-use Spreadsheet::ReadSXC qw( read_sxc read_xml_file read_xml_string );
-use Spreadsheet::ParseExcel;
-use Text::CSV_XS;
+
+my %can = map { $_ => 0 } qw( csv sxc xls prl );
+for (	[ csv	=> "Text::CSV_XS"		],
+#	[ csv	=> "Text::CSV"			],	# NYI
+	[ sxc	=> "Spreadsheet::ReadSXC"	],
+	[ xls	=> "Spreadsheet::ParseExcel"	],
+	[ prl	=> "Spreadsheet::Perl"		],
+	) {
+    my ($flag, $mod) = @$_;
+    $can{$flag} and next;
+    eval "require $mod; \$can{$flag} = '$mod'";
+    }
+$can{sc} = 1;	# SquirelCalc is built-in
 
 my  $debug = 0;
 
 # Helper functions
+
+# Spreadsheet::Read::parses ("csv") or die "Cannot parse CSV"
+sub parses ($)
+{
+    my $type = shift		or  return 0;
+    $type = lc $type;
+    # Aliases and fullnames
+    $type eq "excel"		and return $can{xls};
+    $type eq "oo"		and return $can{sxc};
+    $type eq "openoffice"	and return $can{sxc};
+    $type eq "perl"		and return $can{prl};
+
+    # $can{$type} // 0;
+    exists $can{$type} ? $can{$type} : 0;
+    } # parses
 
 # cr2cell (4, 18) => "D18"
 sub cr2cell ($$)
@@ -59,10 +85,24 @@ sub cell2cr ($)
     ($c, $r);
     } # cell2cr
 
+# Convert {cell}'s [column][row] to a [row][column] list
+# my @rows = rows ($ss->[1]);
+sub rows ($)
+{
+    my $sheet = shift or return;
+    ref $sheet eq "HASH" && exists $sheet->{cell} or return;
+    my $s = $sheet->{cell};
+
+    map {
+	my $r = $_;
+	[ map { $s->[$_][$r] } 1..$sheet->{maxcol} ];
+	} 1..$sheet->{maxrow};
+    } # rows
+
 sub ReadData ($;@)
 {
     my $txt = shift	or  return;
-    ref $txt		and return;	# TODO: support IO stream
+    ref $txt		and return; # TODO: support IO stream (ref $txt eq "IO")
 
     my $tmpfile;
 
@@ -72,6 +112,8 @@ sub ReadData ($;@)
 
     # CSV not supported from streams
     if ($txt =~ m/\.(csv)$/i and -f $txt) {
+	$can{csv} or die "CSV parser not installed";
+
 	open my $in, "< $txt" or return;
 	my $csv;
 	my @data = (
@@ -128,11 +170,13 @@ sub ReadData ($;@)
     if ($txt =~ m/^(\376\067\0\043
 		   |\320\317\021\340\241\261\032\341
 		   |\333\245-\0\0\0)/x) {
+	$can{xls} or die "Spreadsheet::ParseExcel not installed";
 	$tmpfile = File::Temp->new (SUFFIX => ".xls", UNLINK => 1);
 	print $tmpfile $txt;
 	$txt = "$tmpfile";
 	}
     if ($txt =~ m/\.xls$/i and -f $txt) {
+	$can{xls} or die "Spreadsheet::ParseExcel not installed";
 	$debug and print STDERR "Opening XLS $txt\n";
 	my $oBook = Spreadsheet::ParseExcel::Workbook->Parse ($txt);
 	my @data = ( {
@@ -217,15 +261,16 @@ sub ReadData ($;@)
 	}
 
     if ($txt =~ m/^<\?xml/ or -f $txt) {
+	$can{sxc} or die "Spreadsheet::ReadSXC not installed";
 	my $sxc_options = { OrderBySheet => 1 }; # New interface 0.20 and up
 	my $sxc;
 	   if ($txt =~ m/\.sxc$/i) {
 	    $debug and print STDERR "Opening SXC $txt\n";
-	    $sxc = read_sxc      ($txt, $sxc_options)	or  return;
+	    $sxc = Spreadsheet::ReadSXC::read_sxc      ($txt, $sxc_options)	or  return;
 	    }
 	elsif ($txt =~ m/\.xml$/i) {
 	    $debug and print STDERR "Opening XML $txt\n";
-	    $sxc = read_xml_file ($txt, $sxc_options)	or  return;
+	    $sxc = Spreadsheet::ReadSXC::read_xml_file ($txt, $sxc_options)	or  return;
 	    }
 	# need to test on pattern to prevent stat warning
 	# on filename with newline
@@ -236,7 +281,7 @@ sub ReadData ($;@)
 	    $txt = <$f>;
 	    }
 	!$sxc && $txt =~ m/^<\?xml/i and
-	    $sxc = read_xml_string ($txt, $sxc_options);
+	    $sxc = Spreadsheet::ReadSXC::read_xml_string ($txt, $sxc_options);
 	if ($sxc) {
 	    my @data = ( {
 		type	=> "sxc",
@@ -403,6 +448,24 @@ traditional cell notation:
 
 =item C<my ($col, $row) = cell2cr ($cell)>
 
+C<cell2cr ()> converts traditional cell notation to a C<(column, row)>
+pair (1 based):
+
+  my ($col, $row) = cell2cr ("D14"); # returns ( 4, 14)
+  my ($col, $row) = cell2cr ("AB4"); # returns (28,  4)
+
+=item C<my @rows = Spreadsheet::Read::rows ($ss-&gt;[1])>
+
+Convert C<{cell}>'s C<[column][row]> to a C<[row][column]> list.
+
+Note that the indexes in the returned list are 0-based, where the
+index in the C<{cell}> entry is 1-based.
+
+=item C<Spreadsheet::Read::parses ("CSV")>
+
+C<parses ()> returns Spreadsheet::Read's capability to parse the
+required format.
+
 =back
 
 =head1 TODO
@@ -441,10 +504,22 @@ Future plans include cell attributes, available as for example:
 
 =item Options
 
+=over 2
+
+=item Module Options
+
+New Spreadsheet::Read options are bound to happen. I'm thinking of an
+option that disables the reading of the data entirely to speed up an
+index request (how many sheets/fields/columns). See C<xlscat -i>.
+
+=item Parser options
+
 Try to transparently support as many options as the encapsulated modules
 support regarding (un)formatted values, (date) formats, hidden columns
 rows or fields etc. These could be implemented like C<attr> above but
 names C<meta>, or just be new values in the C<attr> hashes.
+
+=back
 
 =item Other spreadsheet formats
 
@@ -452,8 +527,9 @@ I consider adding any spreadsheet interface that offers a usable API.
 
 =item Safety / flexibility
 
-Make the different formats/modules just load if available and ignore if
-not available.
+Now that the different parsers are only activated if the module can be
+loaded, we need more flexibility is switching from Text::CSV_XS to
+Text::CSV in the parser part.
 
 =item OO-ify
 
@@ -486,13 +562,21 @@ http://search.cpan.org/~terhechte/
 http://search.cpan.org/~jwied/
 http://search.cpan.org/~alancitt/
 
-=item Spreadsheet::ConvertAA
-
-http://search.cpan.org/~nkh/ for a faster set of cell2cr () / cr2cell () pair
-
 =item Spreadsheet::BasicRead
 
 http://search.cpan.org/~gng/ for xlscat likewise functionality (Excel only)
+
+=item Spreadsheet::ConvertAA
+
+http://search.cpan.org/~nkh/ for an alternative set of cell2cr () /
+cr2cell () pair
+
+=item Spreadsheet::Perl
+
+http://search.cpan.org/~nkh/ offers a Pure Perl implementation of a
+spreadsheet engine. Users that want this format to be supported in
+Spreadsheet::Read are hereby motivated to offer patches. It's not high
+on my todo-list.
 
 =back
 

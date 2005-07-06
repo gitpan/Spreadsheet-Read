@@ -3,9 +3,15 @@
 use strict;
 use warnings;
 
-use Test::More tests => 301;
+use Test::More;
 
 use Spreadsheet::Read;
+if (Spreadsheet::Read::parses ("sxc")) {
+    plan tests => 301;
+    }
+else {
+    plan skip_all => "No SXC parser found";
+    }
 
 my $content;
 {   local $/;

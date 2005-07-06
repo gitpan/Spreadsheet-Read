@@ -88,12 +88,16 @@ if ($opt_c) {
     }
 
 use Data::Dumper; $Data::Dumper::Sortkeys = 1;
-use Text::CSV_XS;
 
 @ARGV && -f $ARGV[0] or usage "the first argument is not a file";
 my $file = shift;
 
 use Spreadsheet::Read;
+if ($opt_c) {
+    Spreadsheet::Read::parses ("csv") or die "No CSV module found\n";
+    eval { use Text::CSV_XS };
+    }
+
 my $xls = ReadData ($file)	or die "cannot read $file\n";
 $opt_v > 7 and print STDERR Dumper ($xls);
 my $sc  = $xls->[0]{sheets}	or die "No sheets in $file\n";

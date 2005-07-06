@@ -3,9 +3,15 @@
 use strict;
 use warnings;
 
-use Test::More tests => 195;
+use Test::More;
 
 use Spreadsheet::Read;
+if (Spreadsheet::Read::parses ("xls")) {
+    plan tests => 203;
+    }
+else {
+    plan skip_all => "No M\$-Excel parser found";
+    }
 
 {   my $ref;
     $ref = ReadData ("no_such_file.xls");
@@ -49,6 +55,11 @@ foreach my $base ( [ "files/test.xls",	"Read/Parse xls file"	],
 	is ($xls->[1]{cell}[$c][$r],	undef,	"Unformatted cell $cell");
 	is ($xls->[1]{$cell},		undef,	"Formatted   cell $cell");
 	}
+    my @row = Spreadsheet::Read::rows ($xls->[1]);
+    is (scalar @row,		4,	"Row'ed rows");
+    is (scalar @{$row[3]},	4,	"Row'ed columns");
+    is ($row[0][3],		"D1",	"Row'ed value D1");
+    is ($row[3][2],		"C4",	"Row'ed value C4");
     }
 
 # This files is generated under Mac OS/X Tiger

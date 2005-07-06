@@ -3,9 +3,15 @@
 use strict;
 use warnings;
 
-use Test::More tests => 114;
+use Test::More;
 
 use Spreadsheet::Read;
+if (Spreadsheet::Read::parses ("csv")) {
+    plan tests => 114;
+    }
+else {
+    plan skip_all => "No CSV parser found";
+    }
 
 {   my $ref;
     $ref = ReadData ("no_such_file.csv");
