@@ -17,7 +17,7 @@ sub usage (;$)
 	"               -i                  [ -S sheets ] file.xls\n",
 	"       -u          Use unformatted values\n",
 	"    Output Text (default):\n",
-	"       -s <sep>    Use separator <sep>. Default '|'\n",
+	"       -s <sep>    Use separator <sep>. Default '|', \\n allowed\n",
 	"       -L          Line up the columns\n",
 	"    Output Index only:\n",
 	"       -i          Show sheet names and size only\n",
@@ -73,7 +73,7 @@ $opt_i && $opt_C and usage "Options i and C are mutually exclusive";
 $opt_i && $opt_F and usage "Options i and F are mutually exclusive";
 $opt_c && $opt_s and usage "Options c and s are mutually exclusive";
 
-defined $opt_s or $opt_s = "|";
+defined $opt_s or $opt_s = "|"; eval "\$opt_s = qq{$opt_s}";
 defined $opt_S or $opt_S = $opt_i ? "all" : "1";
 $opt_i && $opt_v < 1 and $opt_v = 1;
 
@@ -155,15 +155,18 @@ foreach my $si (1 .. $sc) {
 	}
     $opt_v >= 8 and print Dumper (\%print);
 
+    my $undef = $opt_v > 2 ? "-- undef --" : "";
     my ($h, @w) = (0, (0) x $nc); # data height, -width, and default column widths
     my @align = ("") x $nc;
     foreach my $r ($r[0] .. $r[1]) {
 	exists $print{row} && !exists $print{row}{$r} and next;
 	my @row = map {
-	    my ($val, $cell) = ("");
-	    $cell = $s->{cell}[$_][$r] and
-		($val = $opt_u ? $cell : $s->{cr2cell ($_, $r)}) =~ s/\s+$//;
-	    $val;
+	    my $cell = cr2cell ($_, $r);
+	    my ($uval, $fval) = map {
+		defined $_ ? $_ : $undef
+		} $s->{cell}[$_][$r], $s->{$cell};
+	    $opt_v > 2 and print STDERR "$_:$r '$uval' / '$fval'\n";
+	    defined $s->{cell}[$_][$r] ? $opt_u ? $uval : $fval : "";
 	    } $c[0] .. $c[1];
 	exists $print{col} and @row = @row[@{$print{col}}];
 	if ($opt_L) {

@@ -1,5 +1,11 @@
 Revision history for Spreadsheet::Read
 
+0.08	Wed 15 Sep 2005
+
+    - Better check for false values
+    - t/xls.t now detects a bug in Spreadsheet::ParseExcel, warns for
+    -  it, and generates a patch file for the fix
+
 0.07	Wed 06 Jul 2005
 
     - Added function rows ()

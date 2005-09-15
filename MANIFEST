@@ -12,6 +12,7 @@ files/test_x.csv
 files/test.sc
 files/test.sxc
 files/test.xls
+files/values.xls
 Makefile.PL
 MANIFEST
 README

@@ -18,7 +18,7 @@ Spreadsheet::Read - Read the data from a spreadsheet
 use strict;
 use warnings;
 
-our $VERSION = "0.07";
+our $VERSION = "0.08";
 sub  Version { $VERSION }
 
 use Exporter;
@@ -201,10 +201,10 @@ sub ReadData ($;@)
 		foreach my $r ($oWkS->{MinRow} .. $sheet{maxrow}) { 
 		    foreach my $c ($oWkS->{MinCol} .. $sheet{maxcol}) { 
 			my $oWkC = $oWkS->{Cells}[$r][$c] or next;
-			my $val = $oWkC->{Val} or next;
+			defined (my $val = $oWkC->{Val})  or next;
 			my $cell = cr2cell ($c + 1, $r + 1);
 			$opt{rc}   and $sheet{cell}[$c + 1][$r + 1] = $val;	# Original
-			$opt{cell} and $sheet{$cell} = $oWkC->Value;	# Formatted
+			$opt{cell} and $sheet{$cell} = $oWkC->Value;		# Formatted
 			}
 		    }
 		}

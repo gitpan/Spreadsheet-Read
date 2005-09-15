@@ -7,7 +7,7 @@ use Test::More;
 
 use Spreadsheet::Read;
 if (Spreadsheet::Read::parses ("xls")) {
-    plan tests => 203;
+    plan tests => 217;
     }
 else {
     plan skip_all => "No M\$-Excel parser found";
@@ -94,3 +94,55 @@ foreach my $cell (qw( A18 B1 B6 B20 C26 D14 )) {
     is ($xls->[1]{cell}[$c][$r],	undef,	"Cell $cell");
     is ($xls->[1]{$cell},		undef,	"Cell $c, $r");
     }
+
+eval {
+    use Spreadsheet::ParseExcel::FmtDefault;
+    my ($pm) = map { $INC{$_} } grep m{FmtDefault.pm$}i => keys %INC;
+    if (open PM, "< $pm") {
+	my $l;
+	$l = <PM> for 1 .. 68;
+	if ($l =~ m/'C\*'/) {
+	    print STDERR "\n",
+			 "# If the next tests give warnings like\n",
+			 "# Character in 'C' format wrapped in pack at\n",
+			 "#    $pm line 68\n",
+			 "# Change C* to U* in line 68\n",
+			 "# patch -p0 <SPE68.diff\n";
+	    my @patch = <DATA>;
+	    s/\bPM\b/$pm/ for @patch;
+	    open  PATCH, ">SPE68.diff";
+	    print PATCH @patch;
+	    close PATCH;
+	    }
+	close PM;
+	}
+    };
+
+# Tests for empty thingies
+ok ($xls = ReadData ("files/values.xls"), "True/False values");
+ok (my $ss = $xls->[1], "first sheet");
+is ($ss->{cell}[1][1],	"A1",  "unformatted plain text");
+is ($ss->{cell}[2][1],	" ",   "unformatted space");
+is ($ss->{cell}[3][1],	undef, "unformatted empty");
+is ($ss->{cell}[4][1],	"0",   "unformatted numeric 0");
+is ($ss->{cell}[5][1],	"1",   "unformatted numeric 1");
+is ($ss->{cell}[6][1],	"",    "unformatted a single '");
+is ($ss->{A1},		"A1",  "formatted plain text");
+is ($ss->{B1},		" ",   "formatted space");
+is ($ss->{C1},		undef, "formatted empty");
+is ($ss->{D1},		"0",   "formatted numeric 0");
+is ($ss->{E1},		"1",   "formatted numeric 1");
+is ($ss->{F1},		"",    "formatted a single '");
+
+__END__
+--- PM    2005-09-15 14:16:36.163623616 +0200
++++ PM    2005-09-15 14:11:56.289171000 +0200
+@@ -65,7 +65,7 @@ sub new($;%) {
+ sub TextFmt($$;$) {
+     my($oThis, $sTxt, $sCode) =@_;
+     return $sTxt if((! defined($sCode)) || ($sCode eq '_native_'));
+-    return pack('C*', unpack('n*', $sTxt));
++    return pack('U*', unpack('n*', $sTxt));
+ }
+ #------------------------------------------------------------------------------
+ # FmtStringDef (for Spreadsheet::ParseExcel::FmtDefault)
