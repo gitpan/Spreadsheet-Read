@@ -12,11 +12,12 @@ files/test_x.csv
 files/test.sc
 files/test.sxc
 files/test.xls
-files/values.xls
 Makefile.PL
 MANIFEST
 README
 Read.pm
+t/00_pod.t
+t/01_pod.t
 t/csv.t
 t/sc.t
 t/sxc.t

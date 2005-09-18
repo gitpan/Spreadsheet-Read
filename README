@@ -26,6 +26,10 @@ after installation
   $ make test
   $ make install
 
+If the C<make test> warns you in the xls tests, read the message and
+apply the generated patch. Spreadsheet::ParseExcel has a small bug in
+the parsing of the default format regarding UTF-8.
+
 =head1 TODO
 
   * Make tests for examples/xlscat

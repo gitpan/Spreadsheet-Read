@@ -9,16 +9,18 @@ Spreadsheet::Read - Read the data from a spreadsheet
 =head1 SYNOPSYS
 
  use Spreadsheet::Read;
- my $csv = ReadData ("test.csv", sep => ";");
- my $sxc = ReadData ("test.sxc");
- my $xls = ReadData ("test.xls");
+ my $ref = ReadData ("test.csv", sep => ";");
+ my $ref = ReadData ("test.sxc");
+ my $ref = ReadData ("test.xls");
+
+ my $a3 = $ref->[1]{A3}, "\n"; # content of field A3 of sheet 1
 
 =cut
 
 use strict;
 use warnings;
 
-our $VERSION = "0.08";
+our $VERSION = "0.09";
 sub  Version { $VERSION }
 
 use Exporter;
@@ -204,7 +206,7 @@ sub ReadData ($;@)
 			defined (my $val = $oWkC->{Val})  or next;
 			my $cell = cr2cell ($c + 1, $r + 1);
 			$opt{rc}   and $sheet{cell}[$c + 1][$r + 1] = $val;	# Original
-			$opt{cell} and $sheet{$cell} = $oWkC->Value;		# Formatted
+			$opt{cell} and $sheet{$cell} = $oWkC->Value;	# Formatted
 			}
 		    }
 		}
@@ -454,6 +456,8 @@ pair (1 based):
   my ($col, $row) = cell2cr ("D14"); # returns ( 4, 14)
   my ($col, $row) = cell2cr ("AB4"); # returns (28,  4)
 
+=item my @rows = rows ($ref)
+
 =item C<my @rows = Spreadsheet::Read::rows ($ss-&gt;[1])>
 
 Convert C<{cell}>'s C<[column][row]> to a C<[row][column]> list.
@@ -461,10 +465,27 @@ Convert C<{cell}>'s C<[column][row]> to a C<[row][column]> list.
 Note that the indexes in the returned list are 0-based, where the
 index in the C<{cell}> entry is 1-based.
 
+C<rows ()> is not imported by default, so either specify it in the
+use argument list, or call it fully qualified.
+
+=item parses ($format)
+
 =item C<Spreadsheet::Read::parses ("CSV")>
 
 C<parses ()> returns Spreadsheet::Read's capability to parse the
 required format.
+
+C<parses ()> is not imported by default, so either specify it in the
+use argument list, or call it fully qualified.
+
+=item my $rs_version = Version ()
+
+=item C<my $v = Spreadsheet::Read::Version ()>
+
+Returns the current version of Spreadsheet::Read.
+
+C<Version ()> is not imported by default, so either specify it in the
+use argument list, or call it fully qualified.
 
 =back
 
