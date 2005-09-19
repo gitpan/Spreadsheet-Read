@@ -1,5 +1,13 @@
 Revision history for Spreadsheet::Read
 
+0.10	Mon 19 Sep 2005
+
+    - More test coverage
+    - cr2cell () returns ""     for illegal col/row values
+    - cell2cr () returns (0, 0) for illegal cell    values
+    - rows () tests even better for valid reference pointer
+    - Renamed the test files
+
 0.09	Sun 18 Sep 2005
 
     - Added Test::Pod

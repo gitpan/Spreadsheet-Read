@@ -20,7 +20,7 @@ Spreadsheet::Read - Read the data from a spreadsheet
 use strict;
 use warnings;
 
-our $VERSION = "0.09";
+our $VERSION = "0.10";
 sub  Version { $VERSION }
 
 use Exporter;
@@ -66,6 +66,7 @@ sub parses ($)
 sub cr2cell ($$)
 {
     my ($c, $r) = @_;
+    defined $c && defined $r && $c > 0 && $r > 0 or return "";
     my $cell = "";
     while ($c) {
 	use integer;
@@ -92,7 +93,8 @@ sub cell2cr ($)
 sub rows ($)
 {
     my $sheet = shift or return;
-    ref $sheet eq "HASH" && exists $sheet->{cell} or return;
+    ref    $sheet eq "HASH" && exists $sheet->{cell}   or return;
+    exists $sheet->{maxcol} && exists $sheet->{maxrow} or return;
     my $s = $sheet->{cell};
 
     map {

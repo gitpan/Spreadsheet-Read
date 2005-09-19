@@ -12,14 +12,16 @@ files/test_x.csv
 files/test.sc
 files/test.sxc
 files/test.xls
+files/values.xls
 Makefile.PL
 MANIFEST
 README
 Read.pm
 t/00_pod.t
 t/01_pod.t
-t/csv.t
-t/sc.t
-t/sxc.t
-t/xls.t
+t/10_basics.t
+t/20_csv.t
+t/30_xls.t
+t/40_sxc.t
+t/50_sc.t
 META.yml                                 Module meta-data (added by MakeMaker)
