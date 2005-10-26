@@ -1,5 +1,11 @@
 Revision history for Spreadsheet::Read
 
+0.11	Wed 26 Oct 2005
+
+    - Allow ods (OpenOffice 2.0) for sxc
+    - include real ods test files and new test
+    - Check if sc.version is undef, not 0
+
 0.10	Mon 19 Sep 2005
 
     - More test coverage

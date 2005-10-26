@@ -11,6 +11,7 @@ Spreadsheet::Read - Read the data from a spreadsheet
  use Spreadsheet::Read;
  my $ref = ReadData ("test.csv", sep => ";");
  my $ref = ReadData ("test.sxc");
+ my $ref = ReadData ("test.ods");
  my $ref = ReadData ("test.xls");
 
  my $a3 = $ref->[1]{A3}, "\n"; # content of field A3 of sheet 1
@@ -20,7 +21,7 @@ Spreadsheet::Read - Read the data from a spreadsheet
 use strict;
 use warnings;
 
-our $VERSION = "0.10";
+our $VERSION = "0.11";
 sub  Version { $VERSION }
 
 use Exporter;
@@ -43,7 +44,22 @@ for (	[ csv	=> "Text::CSV_XS"		],
     }
 $can{sc} = 1;	# SquirelCalc is built-in
 
-my  $debug = 0;
+my $debug = 0;
+my @def_attr = (
+    type    => "text",
+    fgcolor => undef,
+    bgcolor => undef,
+    font    => undef,
+    size    => undef,
+    format  => undef,
+    halign  => "left",
+    valign  => "top",
+    uline   => 0,
+    bold    => 0,
+    italic  => 0,
+    wrap    => 0,
+    enc     => "utf-8", # $ENV{LC_ALL} // $ENV{LANG} // ...
+    );
 
 # Helper functions
 
@@ -55,6 +71,7 @@ sub parses ($)
     # Aliases and fullnames
     $type eq "excel"		and return $can{xls};
     $type eq "oo"		and return $can{sxc};
+    $type eq "ods"		and return $can{sxc};
     $type eq "openoffice"	and return $can{sxc};
     $type eq "perl"		and return $can{prl};
 
@@ -63,7 +80,8 @@ sub parses ($)
     } # parses
 
 # cr2cell (4, 18) => "D18"
-sub cr2cell ($$)
+# No prototype to allow 'cr2cell (@rowcol)'
+sub cr2cell
 {
     my ($c, $r) = @_;
     defined $c && defined $r && $c > 0 && $r > 0 or return "";
@@ -113,6 +131,7 @@ sub ReadData ($;@)
     my %opt = @_ && ref ($_[0]) eq "HASH" ? @{shift@_} : @_;
     defined $opt{rc}	or $opt{rc}	= 1;
     defined $opt{cell}	or $opt{cell}	= 1;
+    defined $opt{attr}	or $opt{attr}	= 0;
 
     # CSV not supported from streams
     if ($txt =~ m/\.(csv)$/i and -f $txt) {
@@ -130,6 +149,7 @@ sub ReadData ($;@)
 		maxrow	=> 0,
 		maxcol	=> 0,
 		cell	=> [],
+		attr	=> [],
 		},
 	    );
 	while (<$in>) {
@@ -161,6 +181,7 @@ sub ReadData ($;@)
 		my $cell = cr2cell ($c + 1, $r);
 		$opt{rc}   and $data[1]{cell}[$c + 1][$r] = $val;
 		$opt{cell} and $data[1]{$cell} = $val;
+		$opt{attr} and $data[1]{attr}[$c + 1][$r] = { @def_attr };
 		}
 	    }
 	for (@{$data[1]{cell}}) {
@@ -196,6 +217,7 @@ sub ReadData ($;@)
 		maxrow	=> 0,
 		maxcol	=> 0,
 		cell	=> [],
+		attr	=> [],
 		);
 	    exists $oWkS->{MaxRow} and $sheet{maxrow} = $oWkS->{MaxRow} + 1;
 	    exists $oWkS->{MaxCol} and $sheet{maxcol} = $oWkS->{MaxCol} + 1;
@@ -209,6 +231,26 @@ sub ReadData ($;@)
 			my $cell = cr2cell ($c + 1, $r + 1);
 			$opt{rc}   and $sheet{cell}[$c + 1][$r + 1] = $val;	# Original
 			$opt{cell} and $sheet{$cell} = $oWkC->Value;	# Formatted
+			if ($opt{attr}) {
+			    my $FmT = $oWkC->Format;
+			    my $FnT = $FmT->Font;
+			    $sheet{attr}[$c + 1][$r] = {
+				@def_attr,
+
+				type    => lc $oWkC->Type,
+				enc     => $oWkC->Code,
+				format  => "...",
+				halign  => [ undef, qw( left center right
+					    fill justify ), undef,
+					    "equal_space" ]->[$FmT->AlignH],
+				valign  => [ qw( top center bottom justify
+					    equal_space )]->[$FmT->AlignV],
+				wrap    => $FmT->Wrap,
+				font    => $FnT->Name,
+				fgcolor => $FnT->Color, # Color INDEX :(
+				bgcolor => $FmT->Fill->[2], # Color INDEX
+				};
+			    }
 			}
 		    }
 		}
@@ -239,6 +281,7 @@ sub ReadData ($;@)
 		maxrow	=> 0,
 		maxcol	=> 0,
 		cell	=> [],
+		attr	=> [],
 		},
 	    );
 
@@ -253,6 +296,7 @@ sub ReadData ($;@)
 		my $cell = cr2cell ($c, $r);
 		$opt{rc}   and $data[1]{cell}[$c][$r] = $1;
 		$opt{cell} and $data[1]{$cell} = $1;
+		$opt{attr} and $data[1]{attr}[$c + 1][$r] = { @def_attr };
 		next;
 		}
 	    # Now only formula's remain. Ignore for now
@@ -268,8 +312,8 @@ sub ReadData ($;@)
 	$can{sxc} or die "Spreadsheet::ReadSXC not installed";
 	my $sxc_options = { OrderBySheet => 1 }; # New interface 0.20 and up
 	my $sxc;
-	   if ($txt =~ m/\.sxc$/i) {
-	    $debug and print STDERR "Opening SXC $txt\n";
+	   if ($txt =~ m/\.(sxc|ods)$/i) {
+	    $debug and print STDERR "Opening \U$1\E $txt\n";
 	    $sxc = Spreadsheet::ReadSXC::read_sxc      ($txt, $sxc_options)	or  return;
 	    }
 	elsif ($txt =~ m/\.xml$/i) {
@@ -280,7 +324,7 @@ sub ReadData ($;@)
 	# on filename with newline
 	elsif ($txt !~ m/^<\?xml/i and -f $txt) {
 	    $debug and print STDERR "Opening XML $txt\n";
-	    open my $f, "<$txt"		or  return;
+	    open my $f, "< $txt"	or  return;
 	    local $/;
 	    $txt = <$f>;
 	    }
@@ -307,6 +351,7 @@ sub ReadData ($;@)
 		    maxrow	=> scalar @sheet,
 		    maxcol	=> 0,
 		    cell	=> [],
+		    attr	=> [],
 		    );
 		my $sheet_idx = 1 + @data;
 		$debug and print STDERR "\tSheet $sheet_idx '$sheet{label}' $sheet{maxrow} rows\n";
@@ -319,6 +364,7 @@ sub ReadData ($;@)
 			my $cell = cr2cell ($C, $r + 1);
 			$opt{rc}   and $sheet{cell}[$C][$r + 1] = $val;
 			$opt{cell} and $sheet{$cell} = $val;
+			$opt{attr} and $sheet{attr}[$C][$r + 1] = { @def_attr };
 			}
 		    }
 		for (@{$sheet{cell}}) {
@@ -406,6 +452,8 @@ the sheets when accessing them by name:
 
 =item C<my $ref = ReadData ("file.xls");>
 
+=item C<my $ref = ReadData ("file.ods");>
+
 =item C<my $ref = ReadData ("file.sxc");>
 
 =item C<my $ref = ReadData ("content.xml");>
@@ -431,6 +479,10 @@ Control the generation of named cells ("A1" etc). Default is true.
 =item rc
 
 Control the generation of the {cell}[c][r] entries. Default is true.
+
+=item attr
+
+Control the generation of the {attr}[c][r] entries. Default is false.
 
 =item sep
 
@@ -508,18 +560,22 @@ Future plans include cell attributes, available as for example:
 	    ],
  	  attr   => [ undef,
  	    [ undef, {
+ 	      type   => "numeric",
  	      color  => "Red",
  	      font   => "Arial",
+ 	      enc    => "iso10646-1",
  	      size   => "12",
  	      format => "## ###.##",
- 	      align  => "right",
+ 	      halign => "right",
  	      }, ]
 	    [ undef, undef, undef, undef, undef, {
+ 	      type   => "text",
  	      color  => "#e2e2e2",
  	      font   => "LetterGothic",
+ 	      enc    => "iso8859-1",
  	      size   => "15",
  	      format => undef,
- 	      align  => "left",
+ 	      halign => "left",
  	      }, ]
  	  A1     => 1,
  	  B4     => "Nugget",
@@ -600,6 +656,12 @@ http://search.cpan.org/~nkh/ offers a Pure Perl implementation of a
 spreadsheet engine. Users that want this format to be supported in
 Spreadsheet::Read are hereby motivated to offer patches. It's not high
 on my todo-list.
+
+=item xls2csv
+
+http://search.cpan.org/~ken/ offers an alternative for my C<xlscat -c>,
+in the xls2csv tool, but this tool focusses on character encoding
+transparency, and requires some other modules.
 
 =back
 

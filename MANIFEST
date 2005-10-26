@@ -2,6 +2,7 @@ Changes
 examples/xlscat
 files/content.xml
 files/empty.csv
+files/empty.ods
 files/empty.sc
 files/empty.sxc
 files/empty.xls
@@ -9,6 +10,7 @@ files/macosx.xls
 files/test.csv
 files/test_m.csv
 files/test_x.csv
+files/test.ods
 files/test.sc
 files/test.sxc
 files/test.xls
@@ -23,5 +25,6 @@ t/10_basics.t
 t/20_csv.t
 t/30_xls.t
 t/40_sxc.t
+t/45_ods.t
 t/50_sc.t
 META.yml                                 Module meta-data (added by MakeMaker)

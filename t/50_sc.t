@@ -30,7 +30,7 @@ is ($sc->[0]{sheets},		1,		"Sheet count");
 is (ref $sc->[0]{sheet},	"HASH",		"Sheet list");
 is (scalar keys %{$sc->[0]{sheet}},
 				1,		"Sheet list count");
-cmp_ok ($sc->[0]{version},	"==",	0,	"Parser version");
+is ($sc->[0]{version},		undef,		"Parser version");
 
 is ($sc->[1]{maxcol},		10,		"Columns");
 is ($sc->[1]{maxrow},		26,		"Rows");

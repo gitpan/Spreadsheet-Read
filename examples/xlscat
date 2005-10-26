@@ -1,9 +1,9 @@
 #!/pro/bin/perl
 
 # xls2cat: show XLS/SXC file as Text
-#	  (m)'05 [19-05-2005]
+#	  (m)'05 [19-09-2005]
 
-our $VERSION = "1.1";
+our $VERSION = "1.2";
 
 use strict;
 use warnings;
@@ -89,8 +89,10 @@ if ($opt_c) {
 
 use Data::Dumper; $Data::Dumper::Sortkeys = 1;
 
-@ARGV && -f $ARGV[0] or usage "the first argument is not a file";
+@ARGV or usage;
 my $file = shift;
+-f $file or usage "the first argument is not a regular file";
+-s $file or usage "the file is empty";
 
 use Spreadsheet::Read;
 if ($opt_c) {
