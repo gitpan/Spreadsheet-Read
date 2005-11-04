@@ -1,4 +1,5 @@
 Changes
+examples/ss2tk
 examples/xlscat
 files/content.xml
 files/empty.csv
@@ -22,6 +23,7 @@ Read.pm
 t/00_pod.t
 t/01_pod.t
 t/10_basics.t
+t/11_call.t
 t/20_csv.t
 t/30_xls.t
 t/40_sxc.t

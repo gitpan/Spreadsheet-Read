@@ -21,7 +21,7 @@ Spreadsheet::Read - Read the data from a spreadsheet
 use strict;
 use warnings;
 
-our $VERSION = "0.11";
+our $VERSION = "0.12";
 sub  Version { $VERSION }
 
 use Exporter;
@@ -121,6 +121,42 @@ sub rows ($)
 	} 1..$sheet->{maxrow};
     } # rows
 
+# If option "clip" is set, remove the trailing lines and
+# columns in each sheet that contain no visible data
+sub _clipsheets
+{
+    my ($clip, $ref) = @_;
+    $clip or return $ref;
+
+    foreach my $sheet (1 .. $ref->[0]{sheets}) {
+	my $ss = $ref->[$sheet];
+
+	# Remove trailing empty columns
+	while ($ss->{maxcol} and not (
+		grep { defined && m/\S/ } @{$ss->{cell}[$ss->{maxcol}]})
+		) {
+	    (my $col = cr2cell ($ss->{maxcol}, 1)) =~ s/1$//; 
+	    my $recol = qr{^$col(?=\d+)$};
+	    delete $ss->{$_} for grep m/$recol/, keys %{$ss};
+	    $ss->{maxcol}--;
+	    }
+	$ss->{maxcol} or $ss->{maxrow} = 0;
+
+	# Remove trailing empty lines
+	while ($ss->{maxrow} and not (
+		grep { defined && m/\S/ }
+		map  { $ss->{cell}[$_][$ss->{maxrow}] }
+		1 .. $ss->{maxcol}
+		)) {
+	    my $rerow = qr{^[A-Z]+$ss->{maxrow}$};
+	    delete $ss->{$_} for grep m/$rerow/, keys %{$ss};
+	    $ss->{maxrow}--;
+	    }
+	$ss->{maxrow} or $ss->{maxcol} = 0;
+	}
+    $ref;
+    } # _clipsheets
+
 sub ReadData ($;@)
 {
     my $txt = shift	or  return;
@@ -128,10 +164,11 @@ sub ReadData ($;@)
 
     my $tmpfile;
 
-    my %opt = @_ && ref ($_[0]) eq "HASH" ? @{shift@_} : @_;
+    my %opt = @_ && ref ($_[0]) eq "HASH" ? %{shift@_} : @_;
     defined $opt{rc}	or $opt{rc}	= 1;
     defined $opt{cell}	or $opt{cell}	= 1;
     defined $opt{attr}	or $opt{attr}	= 0;
+    defined $opt{clip}	or $opt{clip}	= $opt{cell};
 
     # CSV not supported from streams
     if ($txt =~ m/\.(csv)$/i and -f $txt) {
@@ -188,7 +225,7 @@ sub ReadData ($;@)
 	    defined $_ or $_ = [];
 	    }
 	close $in;
-	return [ @data ];
+	return _clipsheets $opt{clip}, [ @data ];
 	}
 
     # From /etc/magic: Microsoft Office Document
@@ -261,11 +298,11 @@ sub ReadData ($;@)
 #	    $data[0]{sheets}++;
 	    $data[0]{sheet}{$sheet{label}} = $#data;
 	    }
-	return [ @data ];
+	return _clipsheets $opt{clip}, [ @data ];
 	}
 
     if ($txt =~ m/^# .*SquirrelCalc/ or $txt =~ m/\.sc$/ && -f $txt) {
-	if (-f $txt) {
+	if ($txt !~ m/\n/ && -f $txt) {
 	    local $/;
 	    open my $sc, "< $txt" or return;
 	    $txt = <$sc>;
@@ -305,7 +342,7 @@ sub ReadData ($;@)
 	for (@{$data[1]{cell}}) {
 	    defined $_ or $_ = [];
 	    }
-	return [ @data ];
+	return _clipsheets $opt{clip}, [ @data ];
 	}
 
     if ($txt =~ m/^<\?xml/ or -f $txt) {
@@ -375,7 +412,7 @@ sub ReadData ($;@)
 		$data[0]{sheets}++;
 		$data[0]{sheet}{$sheet->{label}} = $#data;
 		}
-	    return [ @data ];
+	    return _clipsheets $opt{clip}, [ @data ];
 	    }
 	}
 
@@ -483,6 +520,13 @@ Control the generation of the {cell}[c][r] entries. Default is true.
 =item attr
 
 Control the generation of the {attr}[c][r] entries. Default is false.
+
+=item clip
+
+If set, C<ReadData ()> will remove all trailing lines and columns per
+sheet that have no visual data.
+This option is only valid if C<cells> is true. The default value is
+true if C<cells> is true, and false otherwise.
 
 =item sep
 

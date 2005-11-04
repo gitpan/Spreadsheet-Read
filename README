@@ -35,7 +35,7 @@ the parsing of the default format regarding UTF-8.
   * Make tests for examples/xlscat
   * Field attributes (See Read.pm - TODO)
   * Support Parsers native module options
-  * PreReq modules should be optional
+  * Check if Tk is installed before asking if ss2tk is wanted
 
 =head1 AUTHOR
 

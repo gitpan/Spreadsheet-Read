@@ -2,7 +2,7 @@
 #
 # (c) 1986 Minihouse Research
 
-dimension 26 {of 26 rows} 10 {of 10 columns}
+dimension 28 {of 28 rows} 10 {of 10 columns}
 
 global frame 2
 global display 2
@@ -287,5 +287,9 @@ lock r25c4
 lock r25c5
 lock r25c6
 lock r25c7
+r26c0 = ""
+r26c1 = " "
+r27c0 = " "
+r27c1 = ""
 goto r0c0
 model on

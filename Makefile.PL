@@ -1,7 +1,8 @@
 use ExtUtils::MakeMaker;
 
 my @exe;
-for ( [ "xlscat",	"Convert XLS/SXC to plain text or CSV"	],
+for ( [ "xlscat",	"Convert Spreadsheet to plain text or CSV"	],
+      [ "ss2tk",	"Show a Spreadsheet in Perl/Tk"			],
       ) {
     prompt ("Do you want to install '$_->[0]' ($_->[1]) ? ", "n") =~ m/[Yy]/ and
 	push @exe, "examples/$_->[0]";
@@ -14,14 +15,34 @@ my %wm = (
     EXE_FILES    => [ @exe ],
     PREREQ_FATAL => 0,
     PREREQ_PM    => {
-	Text::CSV_XS		=> 0.00,
-	Spreadsheet::ReadSXC	=> 0.20,
-	Spreadsheet::ParseExcel	=> 0.26,
-#	Spreadsheet::Perl	=> 0.00,	# Not yet
+# Backend parsers
+	Text::CSV_XS			=> 0.00,
+	Spreadsheet::ReadSXC		=> 0.20,
+	Spreadsheet::ParseExcel		=> 0.26,
+#	Spreadsheet::Perl		=> 0.00,	# Not yet
 
 	# Core modules
-	File::Temp		=> 0.14,
+	File::Temp			=> 0.14,
+
+# for ss2tk
+#	Tk				=> 804.027,
+#	Tk::NoteBook			=> 4.009,
+#	Tk::TableMatrix::Spreadsheet	=> 1.2,
 	},
     );
 
 my $rv = WriteMakefile (%wm);
+
+1;
+
+package MY;
+
+sub postamble
+{
+    join "\n" =>
+	'test_cover:',
+	'	cover -delete',
+	'	HARNESS_PERL_SWITCHES=-MDevel::Cover $(MAKE) test',
+	'	cover',
+	'';
+    } # postamble
