@@ -1,7 +1,7 @@
 #!/pro/bin/perl
 
 # xls2cat: show XLS/SXC file as Text
-#	  (m)'05 [19-09-2005]
+#	  (m)'05 [19-09-2005] Copyright H.M.Brand 2005-2006
 
 our $VERSION = "1.2";
 

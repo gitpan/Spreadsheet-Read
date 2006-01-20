@@ -7,7 +7,7 @@ use Test::More;
 
 use Spreadsheet::Read;
 if (Spreadsheet::Read::parses ("csv")) {
-    plan tests => 114;
+    plan tests => 117;
     }
 else {
     plan skip_all => "No CSV parser found";
@@ -31,6 +31,11 @@ is (ref $csv->[0]{sheet},	"HASH",		"Sheet list");
 is (scalar keys %{$csv->[0]{sheet}},
 				1,		"Sheet list count");
 cmp_ok ($csv->[0]{version},	">=",	0.01,	"Parser version");
+
+is ($csv->[1]{maxrow},		5,		"Last row");
+is ($csv->[1]{maxcol},		19,		"Last column");
+is ($csv->[1]{cell}[$csv->[1]{maxcol}][$csv->[1]{maxrow}],
+				"LASTFIELD",	"Last field");
 
 ok (1, "Defined fields");
 foreach my $cell (qw( A1 A2 A3 A4 B1 B2 B4 C3 C4 D1 D3 )) {

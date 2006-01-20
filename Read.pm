@@ -21,7 +21,7 @@ Spreadsheet::Read - Read the data from a spreadsheet
 use strict;
 use warnings;
 
-our $VERSION = "0.12";
+our $VERSION = "0.14";
 sub  Version { $VERSION }
 
 use Exporter;
@@ -30,6 +30,7 @@ our @EXPORT    = qw( ReadData cell2cr cr2cell );
 our @EXPORT_OK = qw( parses rows );
 
 use File::Temp           qw( );
+use Data::Dumper;
 
 my %can = map { $_ => 0 } qw( csv sxc xls prl );
 for (	[ csv	=> "Text::CSV_XS"		],
@@ -164,11 +165,19 @@ sub ReadData ($;@)
 
     my $tmpfile;
 
-    my %opt = @_ && ref ($_[0]) eq "HASH" ? %{shift@_} : @_;
+    my %opt;
+    if (@_) {
+	   if (ref $_[0] eq "HASH")  { %opt = %{shift @_} }
+	elsif (@_ % 2 == 0)          { %opt = @_          }
+	}
     defined $opt{rc}	or $opt{rc}	= 1;
-    defined $opt{cell}	or $opt{cell}	= 1;
+    defined $opt{cells}	or $opt{cells}	= 1;
     defined $opt{attr}	or $opt{attr}	= 0;
     defined $opt{clip}	or $opt{clip}	= $opt{cell};
+
+    # $debug = $opt{debug} // 0;
+    $debug = defined $opt{debug} ? $opt{debug} : 0;
+    $debug > 4 and print STDERR Data::Dumper->Dump ([\%opt],["Options"]);
 
     # CSV not supported from streams
     if ($txt =~ m/\.(csv)$/i and -f $txt) {
@@ -211,14 +220,14 @@ sub ReadData ($;@)
 		}
 	    $csv->parse ($_);
 	    my @row = $csv->fields () or next;
-	    my $r = ++$data[1]{maxcol};
-	    @row > $data[1]{maxrow} and $data[1]{maxrow} = @row;
+	    my $r = ++$data[1]{maxrow};
+	    @row > $data[1]{maxcol} and $data[1]{maxcol} = @row;
 	    foreach my $c (0 .. $#row) {
 		my $val = $row[$c];
 		my $cell = cr2cell ($c + 1, $r);
-		$opt{rc}   and $data[1]{cell}[$c + 1][$r] = $val;
-		$opt{cell} and $data[1]{$cell} = $val;
-		$opt{attr} and $data[1]{attr}[$c + 1][$r] = { @def_attr };
+		$opt{rc}    and $data[1]{cell}[$c + 1][$r] = $val;
+		$opt{cells} and $data[1]{$cell} = $val;
+		$opt{attr}  and $data[1]{attr}[$c + 1][$r] = { @def_attr };
 		}
 	    }
 	for (@{$data[1]{cell}}) {
@@ -241,6 +250,7 @@ sub ReadData ($;@)
 	$can{xls} or die "Spreadsheet::ParseExcel not installed";
 	$debug and print STDERR "Opening XLS $txt\n";
 	my $oBook = Spreadsheet::ParseExcel::Workbook->Parse ($txt);
+	$debug > 8 and print STDERR Data::Dumper->Dump ([$oBook],["oBook"]);
 	my @data = ( {
 	    type	=> "xls",
 	    version	=> $Spreadsheet::ParseExcel::VERSION,
@@ -266,8 +276,8 @@ sub ReadData ($;@)
 			my $oWkC = $oWkS->{Cells}[$r][$c] or next;
 			defined (my $val = $oWkC->{Val})  or next;
 			my $cell = cr2cell ($c + 1, $r + 1);
-			$opt{rc}   and $sheet{cell}[$c + 1][$r + 1] = $val;	# Original
-			$opt{cell} and $sheet{$cell} = $oWkC->Value;	# Formatted
+			$opt{rc}    and $sheet{cell}[$c + 1][$r + 1] = $val;	# Original
+			$opt{cells} and $sheet{$cell} = $oWkC->Value;	# Formatted
 			if ($opt{attr}) {
 			    my $FmT = $oWkC->Format;
 			    my $FnT = $FmT->Font;
@@ -331,9 +341,9 @@ sub ReadData ($;@)
 	    my ($c, $r) = map { $_ + 1 } $2, $1;
 	    if (m/.* {(.*)}$/ or m/"(.*)"/) {
 		my $cell = cr2cell ($c, $r);
-		$opt{rc}   and $data[1]{cell}[$c][$r] = $1;
-		$opt{cell} and $data[1]{$cell} = $1;
-		$opt{attr} and $data[1]{attr}[$c + 1][$r] = { @def_attr };
+		$opt{rc}    and $data[1]{cell}[$c][$r] = $1;
+		$opt{cells} and $data[1]{$cell} = $1;
+		$opt{attr}  and $data[1]{attr}[$c + 1][$r] = { @def_attr };
 		next;
 		}
 	    # Now only formula's remain. Ignore for now
@@ -367,6 +377,7 @@ sub ReadData ($;@)
 	    }
 	!$sxc && $txt =~ m/^<\?xml/i and
 	    $sxc = Spreadsheet::ReadSXC::read_xml_string ($txt, $sxc_options);
+	$debug > 8 and print STDERR Data::Dumper->Dump ([$sxc],["sxc"]);
 	if ($sxc) {
 	    my @data = ( {
 		type	=> "sxc",
@@ -399,9 +410,9 @@ sub ReadData ($;@)
 			my $C = $c + 1;
 			$C > $sheet{maxcol} and $sheet{maxcol} = $C;
 			my $cell = cr2cell ($C, $r + 1);
-			$opt{rc}   and $sheet{cell}[$C][$r + 1] = $val;
-			$opt{cell} and $sheet{$cell} = $val;
-			$opt{attr} and $sheet{attr}[$C][$r + 1] = { @def_attr };
+			$opt{rc}    and $sheet{cell}[$C][$r + 1] = $val;
+			$opt{cells} and $sheet{$cell} = $val;
+			$opt{attr}  and $sheet{attr}[$C][$r + 1] = { @def_attr };
 			}
 		    }
 		for (@{$sheet{cell}}) {
@@ -535,6 +546,14 @@ Set separator for CSV. Default is comma C<,>.
 =item quote
 
 Set quote character for CSV. Default is C<">.
+
+=item debug
+
+Enable some diagnostic messages to STDERR.
+
+The value determines how much diagnostics are dumped (using Data::Dumper).
+A value of 9 and higher will dump the entire structure from the backend
+parser.
 
 =back
 
@@ -715,7 +734,7 @@ H.Merijn Brand, <h.m.brand@xs4all.nl>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2005-2005 H.Merijn Brand
+Copyright (C) 2005-2006 H.Merijn Brand
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself. 

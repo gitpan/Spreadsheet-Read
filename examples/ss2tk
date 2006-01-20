@@ -2,7 +2,7 @@
 #!/opt/perl/bin/perl
 
 # ss2tk: show SpreadSheet file in Tk::TableMatrix::Spreadsheet (*)
-#	  (m)'05 [31-10-2005]
+#	  (m)'05 [31-10-2005] Copyright H.M.Brand 2005-2006
 
 our $VERSION = "2.0";
 

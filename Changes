@@ -1,12 +1,22 @@
 Revision history for Spreadsheet::Read
 
-0.12	Thu 04 Nov 2005
+0.14	Fri 20 Jan 2006
 
-    - Added ss2tk to examples
+    - maxrow and maxcol were swapped in csv sheets
+    - promoted internal debug flag to option
+    - small doc changes
+
+0.13	Thu 04 Nov 2005
+
+    - Control attrib 'cells' was misinterpreted
     - New option: clip, default is true if {cell} is selected, false otherwise
       Removes trailing lines and columns in each sheet that have no visible data
     - new test t/11_call.t for checking options. Not complete yet
     - Added test_cover target to Makefile.PL
+
+0.12	Mon 31 Oct 2005
+
+    - Added ss2tk to examples
 
 0.11	Wed 26 Oct 2005
 

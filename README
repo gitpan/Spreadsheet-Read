@@ -36,6 +36,7 @@ the parsing of the default format regarding UTF-8.
   * Field attributes (See Read.pm - TODO)
   * Support Parsers native module options
   * Check if Tk is installed before asking if ss2tk is wanted
+  * Test diagnostics output
 
 =head1 AUTHOR
 
@@ -43,7 +44,7 @@ H.Merijn Brand, <h.m.brand@xs4all.nl>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2005-2005 H.Merijn Brand
+Copyright (C) 2005-2006 H.Merijn Brand
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself. 
