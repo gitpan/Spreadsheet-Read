@@ -37,6 +37,7 @@ the parsing of the default format regarding UTF-8.
   * Support Parsers native module options
   * Check if Tk is installed before asking if ss2tk is wanted
   * Test diagnostics output
+  * Make clip skip empty sheets
 
 =head1 AUTHOR
 

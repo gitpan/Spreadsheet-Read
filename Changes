@@ -1,5 +1,14 @@
 Revision history for Spreadsheet::Read
 
+0.15	Wed 21 Jun 2006
+
+    - Small doc change from AnnoCPAN
+    - Sheets with undefined labels might cause havoc
+    - Clip now skips empty xls sheets (TODO: sxc)
+    - xlscat clips by default
+    - xlscat new options -d and --noclip
+    - xlscat usage () from -?/--help to STDOUT from fault to STDERR
+
 0.14	Fri 20 Jan 2006
 
     - maxrow and maxcol were swapped in csv sheets

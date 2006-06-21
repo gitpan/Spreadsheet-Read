@@ -1,21 +1,27 @@
 #!/pro/bin/perl
 
 # xls2cat: show XLS/SXC file as Text
-#	  (m)'05 [19-09-2005] Copyright H.M.Brand 2005-2006
+#	  (m)'06 [21-06-2006] Copyright H.M.Brand 2005-2006
 
-our $VERSION = "1.2";
+our $VERSION = "1.3";
 
 use strict;
 use warnings;
 
-sub usage (;$)
+sub usage ($;$)
 {
-    my ($msg) = (@_, "");
-    print STDERR
+    my ($err, $msg) = (@_, "");
+    $err and select STDERR;
+    print
 	"usage: xlscat [-s <sep>] [-L] [-u] [ Selection ] file.xls\n",
 	"              [-c | -m]       [-u] [ Selection ] file.xls\n",
 	"               -i                  [ -S sheets ] file.xls\n",
+	"    Generic options:\n",
+	"       -v[#]       Set verbose level (xlscat)\n",
+	"       -d[#]       Set debug   level (Spreadsheet::Read)\n",
 	"       -u          Use unformatted values\n",
+	"       --noclip    Do not strip empty sheets and\n",
+	"                   trailing empty rows and columns\n",
 	"    Output Text (default):\n",
 	"       -s <sep>    Use separator <sep>. Default '|', \\n allowed\n",
 	"       -L          Line up the columns\n",
@@ -30,11 +36,11 @@ sub usage (;$)
 	"       -R <rows>   Only print rows    <rows>. Default is 'all'\n",
 	"       -C <cols>   Only print columns <cols>. Default is 'all'\n",
 	"       -F <flds>   Only fields <flds> e.g. -FA3,B16\n";
-    $msg and print STDERR "$msg\n";
-    exit;
+    $msg and print "$msg\n";
+    exit $err;
     } # usage
 
-@ARGV == 1 and $ARGV[0] eq "-?" || $ARGV[0] =~ m/^-+help$/ and usage ();
+@ARGV == 1 and $ARGV[0] eq "-?" || $ARGV[0] =~ m/^-+help$/ and usage (0);
 
 use Getopt::Long qw(:config bundling nopermute noignorecase);
 my $opt_c;		# Generate CSV
@@ -46,7 +52,9 @@ my $opt_F = "";		# Fields to print
 my $opt_i = 0;		# Index
 my $opt_L = 0;		# Auto-size/align columns
 my $opt_u = 0;		# Show unformatted values
-my $opt_v = 0;
+my $opt_v = 0;		# Verbosity for xlscat
+my $opt_d = 0;		# Debug level for Spreadsheet::Read
+my $clip  = 1;
 GetOptions (
     "c|csv"		=> sub { $opt_c = "," },
     "m|ms"		=> sub { $opt_c = ";" },
@@ -59,19 +67,21 @@ GetOptions (
     "L|fit|align"	=> \$opt_L,
     "u|unformatted"	=> \$opt_u,
     "v|verbose:1"	=> \$opt_v,
-    ) or usage "GetOpt: $@";
+    "d|debug:1"		=> \$opt_d,
+    "noclip"		=> sub { $clip = 0 },
+    ) or usage 1, "GetOpt: $@";
 
 #binmode STDOUT;
 
-$opt_i && $opt_L and usage "Options i and L are mutually exclusive";
-$opt_i && $opt_s and usage "Options i and s are mutually exclusive";
-$opt_i && $opt_c and usage "Options i and c are mutually exclusive";
-$opt_i && $opt_u and usage "Options i and u are mutually exclusive";
-$opt_i && $opt_S and usage "Options i and S are mutually exclusive";
-$opt_i && $opt_R and usage "Options i and R are mutually exclusive";
-$opt_i && $opt_C and usage "Options i and C are mutually exclusive";
-$opt_i && $opt_F and usage "Options i and F are mutually exclusive";
-$opt_c && $opt_s and usage "Options c and s are mutually exclusive";
+$opt_i && $opt_L and usage 1, "Options i and L are mutually exclusive";
+$opt_i && $opt_s and usage 1, "Options i and s are mutually exclusive";
+$opt_i && $opt_c and usage 1, "Options i and c are mutually exclusive";
+$opt_i && $opt_u and usage 1, "Options i and u are mutually exclusive";
+$opt_i && $opt_S and usage 1, "Options i and S are mutually exclusive";
+$opt_i && $opt_R and usage 1, "Options i and R are mutually exclusive";
+$opt_i && $opt_C and usage 1, "Options i and C are mutually exclusive";
+$opt_i && $opt_F and usage 1, "Options i and F are mutually exclusive";
+$opt_c && $opt_s and usage 1, "Options c and s are mutually exclusive";
 
 defined $opt_s or $opt_s = "|"; eval "\$opt_s = qq{$opt_s}";
 defined $opt_S or $opt_S = $opt_i ? "all" : "1";
@@ -89,10 +99,10 @@ if ($opt_c) {
 
 use Data::Dumper; $Data::Dumper::Sortkeys = 1;
 
-@ARGV or usage;
+@ARGV or usage 1;
 my $file = shift;
--f $file or usage "the first argument is not a regular file";
--s $file or usage "the file is empty";
+-f $file or usage 1, "the first argument is not a regular file";
+-s $file or usage 1, "the file is empty";
 
 use Spreadsheet::Read;
 if ($opt_c) {
@@ -100,7 +110,8 @@ if ($opt_c) {
     eval { use Text::CSV_XS };
     }
 
-my $xls = ReadData ($file)	or die "cannot read $file\n";
+my $xls = ReadData ($file, debug => $opt_d, clip => $clip) or
+    die "cannot read $file\n";
 $opt_v > 7 and print STDERR Dumper ($xls);
 my $sc  = $xls->[0]{sheets}	or die "No sheets in $file\n";
 $opt_v > 1 and print STDERR "Opened $file with $sc sheets\n";

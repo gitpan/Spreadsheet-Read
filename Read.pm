@@ -21,7 +21,7 @@ Spreadsheet::Read - Read the data from a spreadsheet
 use strict;
 use warnings;
 
-our $VERSION = "0.14";
+our $VERSION = "0.15";
 sub  Version { $VERSION }
 
 use Exporter;
@@ -259,6 +259,7 @@ sub ReadData ($;@)
 	    } );
 	$debug and print STDERR "\t$data[0]{sheets} sheets\n";
 	foreach my $oWkS (@{$oBook->{Worksheet}}) {
+	    $opt{clip} and !defined $oWkS->{Cells} and next; # Skip empty sheets
 	    my %sheet = (
 		label	=> $oWkS->{Name},
 		maxrow	=> 0,
@@ -266,6 +267,7 @@ sub ReadData ($;@)
 		cell	=> [],
 		attr	=> [],
 		);
+	    defined $sheet{label}  or  $sheet{label}  = "-- unlabeled --";
 	    exists $oWkS->{MaxRow} and $sheet{maxrow} = $oWkS->{MaxRow} + 1;
 	    exists $oWkS->{MaxCol} and $sheet{maxcol} = $oWkS->{MaxCol} + 1;
 	    my $sheet_idx = 1 + @data;
@@ -306,7 +308,12 @@ sub ReadData ($;@)
 		}
 	    push @data, { %sheet };
 #	    $data[0]{sheets}++;
-	    $data[0]{sheet}{$sheet{label}} = $#data;
+	    if ($sheet{label} eq "-- unlabeled --") {
+		$sheet{label} = "";
+		}
+	    else {
+		$data[0]{sheet}{$sheet{label}} = $#data;
+		}
 	    }
 	return _clipsheets $opt{clip}, [ @data ];
 	}
@@ -469,7 +476,7 @@ The data is returned as an array reference:
 	    [ undef, undef, undef, undef, undef, "Nugget" ],
 	    ],
  	  A1     => 1,
- 	  B4     => "Nugget",
+ 	  B5     => "Nugget",
  	  },
  	# Entry 2 is the second sheet
  	{ label => "Sheet 2",
@@ -641,7 +648,7 @@ Future plans include cell attributes, available as for example:
  	      halign => "left",
  	      }, ]
  	  A1     => 1,
- 	  B4     => "Nugget",
+ 	  B5     => "Nugget",
  	  },
 
 =item Options
