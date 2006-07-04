@@ -27,6 +27,8 @@ t/10_basics.t
 t/11_call.t
 t/20_csv.t
 t/30_xls.t
+t/31_clr.t
+t/32_fmt.t
 t/40_sxc.t
 t/45_ods.t
 t/50_sc.t

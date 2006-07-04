@@ -21,7 +21,7 @@ Spreadsheet::Read - Read the data from a spreadsheet
 use strict;
 use warnings;
 
-our $VERSION = "0.16";
+our $VERSION = "0.17";
 sub  Version { $VERSION }
 
 use Exporter;
@@ -55,9 +55,9 @@ my @def_attr = (
     format  => undef,
     halign  => "left",
     valign  => "top",
-    uline   => 0,
     bold    => 0,
     italic  => 0,
+    uline   => 0,
     wrap    => 0,
     merged  => 0,
     hidden  => 0,
@@ -161,6 +161,15 @@ sub _clipsheets
     $ref;
     } # _clipsheets
 
+sub _xls_color {
+    my ($clr, @clr) = @_;
+    @clr == 0 && $clr == 32767 and return undef; # Default fg color
+    @clr == 2 && $clr ==     0 and return undef; # No fill bg color
+    @clr == 2 && $clr ==     1 and ($clr, @clr) = ($clr[0]);
+    @clr and return undef; # Don't know what to do with this
+    "#" . lc Spreadsheet::ParseExcel->ColorIdxToRGB ($clr);
+    } # _xls_color
+
 sub ReadData ($;@)
 {
     my $txt = shift	or  return;
@@ -257,14 +266,6 @@ sub ReadData ($;@)
     if ($txt =~ m/\.xls$/i and -f $txt) {
 	$can{xls} or die "Spreadsheet::ParseExcel not installed";
 	$debug and print STDERR "Opening XLS $txt\n";
-	sub xls_color {
-	    my ($clr, @clr) = @_;
-	    @clr == 0 && $clr == 32767 and return undef; # Default fg color
-	    @clr == 2 && $clr ==     0 and return undef; # No fill bg color
-	    @clr == 2 && $clr ==     1 and ($clr, @clr) = ($clr[0]);
-	    @clr and return undef; # Don't know what to do with this
-	    "#" . lc Spreadsheet::ParseExcel->ColorIdxToRGB ($clr);
-	    } # xls_color
 	my $oBook = Spreadsheet::ParseExcel::Workbook->Parse ($txt);
 	$debug > 8 and print STDERR Data::Dumper->Dump ([$oBook],["oBook"]);
 	my @data = ( {
@@ -300,12 +301,12 @@ sub ReadData ($;@)
 			if ($opt{attr}) {
 			    my $FmT = $oWkC->{Format};
 			    my $FnT = $FmT->{Font};
-			    $sheet{attr}[$c + 1][$r] = {
+			    $sheet{attr}[$c + 1][$r + 1] = {
 				@def_attr,
 
 				type    => lc $oWkC->{Type},
 				enc     => $oWkC->{Code},
-				merged	=> $FmT->{Merge},
+				merged	=> $oWkC->{Merged} || 0,
 				hidden	=> $FmT->{Hidden},
 				locked	=> $FmT->{Lock},
 				format  => $FmT->{FmtIdx}
@@ -318,8 +319,11 @@ sub ReadData ($;@)
 					    equal_space )]->[$FmT->{AlignV}],
 				wrap    => $FmT->{Wrap},
 				font    => $FnT->{Name},
-				fgcolor => xls_color ($FnT->{Color}),
-				bgcolor => xls_color (@{$FmT->{Fill}}),
+				bold	=> $FnT->{Bold},
+				italic	=> $FnT->{Italic},
+				uline	=> $FnT->{Underline},
+				fgcolor => _xls_color ($FnT->{Color}),
+				bgcolor => _xls_color (@{$FmT->{Fill}}),
 				};
 			    }
 			}

@@ -1,5 +1,12 @@
 Revision history for Spreadsheet::Read
 
+0.17	Tue 04 Jul 2006
+
+    - xlscat new option: --ansii to (try to) use the ansi colors for fields
+    - Fixed a color attribute off-by-one error
+    - Added test cases (not yet complete)
+    - Added bold and underline
+
 0.16	Tue 04 Jul 2006
 
     - xlscat new option: --in-sep-char to force-define input sep-char for CSV

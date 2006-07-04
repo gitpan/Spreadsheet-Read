@@ -56,6 +56,7 @@ my $opt_L = 0;		# Auto-size/align columns
 my $opt_u = 0;		# Show unformatted values
 my $opt_v = 0;		# Verbosity for xlscat
 my $opt_d = 0;		# Debug level for Spreadsheet::Read
+my $opt_A = 0;		# Show field colors in ansi escapes
 my $clip  = 1;
 my $sep;		# Input field sep for CSV
 GetOptions (
@@ -72,6 +73,7 @@ GetOptions (
     "C|columns=s"	=> \$opt_C,
     "F|fields=s"	=> \$opt_F,
     "L|fit|align"	=> \$opt_L,
+    "A|ansi"		=> \$opt_A,
     "u|unformatted"	=> \$opt_u,
     "v|verbose:1"	=> \$opt_v,
     "d|debug:1"		=> \$opt_d,
@@ -119,6 +121,7 @@ if ($opt_c) {
 
 my @RDarg = (debug => $opt_d, clip => $clip);
 defined $sep and push @RDarg, "sep" => $sep;
+$opt_A       and push @RDarg, "attr" => 1;
 $opt_v > 4 and print STDERR "ReadData ($file, @RDarg);\n";
 my $xls = ReadData ($file, @RDarg) or die "cannot read $file\n";
 $opt_v > 7 and print STDERR Dumper ($xls);
@@ -132,6 +135,38 @@ my %print;
 eval "%{\$print{sheet}} = map { \$_ => 1 } $opt_S";
 
 my $v_fmt = $opt_C || $opt_R || $opt_F ? "" : "%6d x %6d%s";
+
+# New style xterm (based on ANSI colors):
+# 30 Black
+# 31 Red
+# 32 Green
+# 33 Yellow
+# 34 Blue
+# 35 Magenta
+# 36 Cyan
+# 37 White
+sub color_reduce ($$)
+{
+    my ($rgb, $base) = @_;
+    defined $rgb or return "";
+    my ($r, $g, $b) = map { hex >> 7 }
+	($rgb =~ m/^\s*#?([\da-f]{2})([\da-f]{2})([\da-f]{2})/);
+    $base + 4 * $b + 2 * $g + $r;
+    } # color_reduce
+
+sub ansi_color
+{
+    my ($fg, $bg, $bold, $ul) = @_;
+
+    #print STDERR "$fg on $bg $bold $ul\n";
+    my $attr = join ";", 0, grep { /\S/ }
+	$bold ? 1 : "",
+	$ul   ? 4 : "",
+	color_reduce ($fg, 30),
+	color_reduce ($bg, 40);
+
+    "\e[${attr}m";
+    } # ansi_color
 
 my $name_len = 30;
 if ($opt_i) {
@@ -182,12 +217,15 @@ foreach my $si (1 .. $sc) {
     my @align = ("") x $nc;
     foreach my $r ($r[0] .. $r[1]) {
 	exists $print{row} && !exists $print{row}{$r} and next;
+	my @att;
 	my @row = map {
 	    my $cell = cr2cell ($_, $r);
 	    my ($uval, $fval) = map {
 		defined $_ ? $_ : $undef
 		} $s->{cell}[$_][$r], $s->{$cell};
 	    $opt_v > 2 and print STDERR "$_:$r '$uval' / '$fval'\n";
+	    $opt_A and 
+		push @att, [ @{$s->{attr}[$_][$r]}{qw( fgcolor bgcolor bold uline )} ];
 	    defined $s->{cell}[$_][$r] ? $opt_u ? $uval : $fval : "";
 	    } $c[0] .. $c[1];
 	exists $print{col} and @row = @row[@{$print{col}}];
@@ -204,8 +242,16 @@ foreach my $si (1 .. $sc) {
 	    next;
 	    }
 	if ($opt_L) {	# Autofit / Align
-	    push @data, [ @row ];
+	    push @data, [ [ @row ], [ @att ] ];
 	    next;
+	    }
+	if ($opt_A) {
+	    foreach my $c (0 .. $#row) {
+		$row[$c] =
+		    ansi_color (@{$att[$c]}).
+		    $row[$c] .
+		    "\e[0m";
+		}
 	    }
 	print join ($opt_s => @row), "\n";
 	} continue {
@@ -213,6 +259,17 @@ foreach my $si (1 .. $sc) {
 	    }
     printf STDERR $v_fmt, $nc, $h, "\n";
     $opt_L or next;
-    my $fmt = join ($opt_s => map { "%$align[$_]$w[$_]s" } 0 .. $#w)."\n";
-    printf $fmt, @$_ for @data;
+    my $fmt = join ($opt_s =>
+	map { my $f = "%$align[$_]$w[$_]s";
+	      $opt_A ? "%s$f%s" : $f } 0 .. $#w)."\n";
+    for (@data) {
+	my ($row, $att) = @$_;
+	my @row = $opt_A
+	    ? map { (
+		ansi_color (@{$att->[$_]}),
+		$row->[$_],
+		"\e[0m" ) } 0 .. $#$row
+	    : @$row;
+	printf $fmt, @row;
+	}
     }
