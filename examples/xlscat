@@ -1,9 +1,9 @@
 #!/pro/bin/perl
 
 # xls2cat: show XLS/SXC file as Text
-#	  (m)'06 [21-06-2006] Copyright H.M.Brand 2005-2006
+#	  (m)'06 [23-06-2006] Copyright H.M.Brand 2005-2006
 
-our $VERSION = "1.3";
+our $VERSION = "1.4";
 
 use strict;
 use warnings;
@@ -22,6 +22,8 @@ sub usage ($;$)
 	"       -u          Use unformatted values\n",
 	"       --noclip    Do not strip empty sheets and\n",
 	"                   trailing empty rows and columns\n",
+	"    Input CSV:\n",
+	"       --in-sep=c  Set input sep_char for CSV\n",
 	"    Output Text (default):\n",
 	"       -s <sep>    Use separator <sep>. Default '|', \\n allowed\n",
 	"       -L          Line up the columns\n",
@@ -55,11 +57,16 @@ my $opt_u = 0;		# Show unformatted values
 my $opt_v = 0;		# Verbosity for xlscat
 my $opt_d = 0;		# Debug level for Spreadsheet::Read
 my $clip  = 1;
+my $sep;		# Input field sep for CSV
 GetOptions (
     "c|csv"		=> sub { $opt_c = "," },
     "m|ms"		=> sub { $opt_c = ";" },
+    "insepchar".
+     "|in-sep-char=s"	=> \$sep,
     "i|index"		=> \$opt_i,
-    "s|separator=s"	=> \$opt_s,
+    "s|separator".
+     "|outsepchar".
+     "|out-sep-char=s"	=> \$opt_s,
     "S|sheets=s"	=> \$opt_S,
     "R|rows=s"		=> \$opt_R,
     "C|columns=s"	=> \$opt_C,
@@ -110,8 +117,10 @@ if ($opt_c) {
     eval { use Text::CSV_XS };
     }
 
-my $xls = ReadData ($file, debug => $opt_d, clip => $clip) or
-    die "cannot read $file\n";
+my @RDarg = (debug => $opt_d, clip => $clip);
+defined $sep and push @RDarg, "sep" => $sep;
+$opt_v > 4 and print STDERR "ReadData ($file, @RDarg);\n";
+my $xls = ReadData ($file, @RDarg) or die "cannot read $file\n";
 $opt_v > 7 and print STDERR Dumper ($xls);
 my $sc  = $xls->[0]{sheets}	or die "No sheets in $file\n";
 $opt_v > 1 and print STDERR "Opened $file with $sc sheets\n";

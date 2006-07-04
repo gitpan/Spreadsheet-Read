@@ -21,7 +21,7 @@ Spreadsheet::Read - Read the data from a spreadsheet
 use strict;
 use warnings;
 
-our $VERSION = "0.15";
+our $VERSION = "0.16";
 sub  Version { $VERSION }
 
 use Exporter;
@@ -59,6 +59,9 @@ my @def_attr = (
     bold    => 0,
     italic  => 0,
     wrap    => 0,
+    merged  => 0,
+    hidden  => 0,
+    locked  => 0,
     enc     => "utf-8", # $ENV{LC_ALL} // $ENV{LANG} // ...
     );
 
@@ -183,11 +186,15 @@ sub ReadData ($;@)
     if ($txt =~ m/\.(csv)$/i and -f $txt) {
 	$can{csv} or die "CSV parser not installed";
 
+	$debug and print STDERR "Opening CSV $txt\n";
 	open my $in, "< $txt" or return;
 	my $csv;
 	my @data = (
 	    {	type	=> "csv",
+		parser  => "Text::CSV_XS",
 		version	=> $Text::CSV_XS::VERSION,
+		quote   => '"',
+		sepchar => ',',
 		sheets	=> 1,
 		sheet	=> { $txt => 1 },
 		},
@@ -212,9 +219,10 @@ sub ReadData ($;@)
 		       m/\w,[\w,]/      ? ","  :
 		       m/\w\t[\w,]/     ? "\t" :
 					  ","  ;
+		$debug > 1 and print STDERR "CSV sep_char '$sep', quote_char '$quo'\n";
 		$csv = Text::CSV_XS->new ({
-		    sep_char   => $sep,
-		    quote_char => $quo,
+		    sep_char   => ($data[0]{sepchar} = $sep),
+		    quote_char => ($data[0]{quote}   = $quo),
 		    binary     => 1,
 		    });
 		}
@@ -249,10 +257,19 @@ sub ReadData ($;@)
     if ($txt =~ m/\.xls$/i and -f $txt) {
 	$can{xls} or die "Spreadsheet::ParseExcel not installed";
 	$debug and print STDERR "Opening XLS $txt\n";
+	sub xls_color {
+	    my ($clr, @clr) = @_;
+	    @clr == 0 && $clr == 32767 and return undef; # Default fg color
+	    @clr == 2 && $clr ==     0 and return undef; # No fill bg color
+	    @clr == 2 && $clr ==     1 and ($clr, @clr) = ($clr[0]);
+	    @clr and return undef; # Don't know what to do with this
+	    "#" . lc Spreadsheet::ParseExcel->ColorIdxToRGB ($clr);
+	    } # xls_color
 	my $oBook = Spreadsheet::ParseExcel::Workbook->Parse ($txt);
 	$debug > 8 and print STDERR Data::Dumper->Dump ([$oBook],["oBook"]);
 	my @data = ( {
 	    type	=> "xls",
+	    parser	=> "Spreadsheet::ParseExcel",
 	    version	=> $Spreadsheet::ParseExcel::VERSION,
 	    sheets	=> $oBook->{SheetCount},
 	    sheet	=> {},
@@ -281,23 +298,28 @@ sub ReadData ($;@)
 			$opt{rc}    and $sheet{cell}[$c + 1][$r + 1] = $val;	# Original
 			$opt{cells} and $sheet{$cell} = $oWkC->Value;	# Formatted
 			if ($opt{attr}) {
-			    my $FmT = $oWkC->Format;
-			    my $FnT = $FmT->Font;
+			    my $FmT = $oWkC->{Format};
+			    my $FnT = $FmT->{Font};
 			    $sheet{attr}[$c + 1][$r] = {
 				@def_attr,
 
-				type    => lc $oWkC->Type,
-				enc     => $oWkC->Code,
-				format  => "...",
+				type    => lc $oWkC->{Type},
+				enc     => $oWkC->{Code},
+				merged	=> $FmT->{Merge},
+				hidden	=> $FmT->{Hidden},
+				locked	=> $FmT->{Lock},
+				format  => $FmT->{FmtIdx}
+					   ? $oBook->{FormatStr}{$FmT->{FmtIdx}}
+					   : undef,
 				halign  => [ undef, qw( left center right
 					    fill justify ), undef,
-					    "equal_space" ]->[$FmT->AlignH],
+					    "equal_space" ]->[$FmT->{AlignH}],
 				valign  => [ qw( top center bottom justify
-					    equal_space )]->[$FmT->AlignV],
-				wrap    => $FmT->Wrap,
-				font    => $FnT->Name,
-				fgcolor => $FnT->Color, # Color INDEX :(
-				bgcolor => $FmT->Fill->[2], # Color INDEX
+					    equal_space )]->[$FmT->{AlignV}],
+				wrap    => $FmT->{Wrap},
+				font    => $FnT->{Name},
+				fgcolor => xls_color ($FnT->{Color}),
+				bgcolor => xls_color (@{$FmT->{Fill}}),
 				};
 			    }
 			}
@@ -327,7 +349,8 @@ sub ReadData ($;@)
 	    }
 	my @data = (
 	    {	type	=> "sc",
-		version	=> undef,
+		parser	=> "Spreadsheet::Read",
+		version	=> $VERSION,
 		sheets	=> 1,
 		sheet	=> { sheet => 1 },
 		},
@@ -388,6 +411,7 @@ sub ReadData ($;@)
 	if ($sxc) {
 	    my @data = ( {
 		type	=> "sxc",
+		parser	=> "Spreadsheet::ReadSXC",
 		version	=> $Spreadsheet::ReadSXC::VERSION,
 		sheets	=> 0,
 		sheet	=> {},
@@ -465,6 +489,7 @@ The data is returned as an array reference:
 	    "Sheet 2"	=> 2,
 	    },
 	  type    => "xls",
+	  parser  => "Spreadsheet::ParseExcel",
 	  version => 0.26,
 	  },
  	# Entry 1 is the first sheet
@@ -621,35 +646,55 @@ use argument list, or call it fully qualified.
 
 Future plans include cell attributes, available as for example:
 
- 	{ label  => "Sheet 1",
- 	  maxrow => 2,
- 	  maxcol => 4,
- 	  cell   => [ undef,
-	    [ undef, 1 ],
-	    [ undef, undef, undef, undef, undef, "Nugget" ],
-	    ],
- 	  attr   => [ undef,
- 	    [ undef, {
- 	      type   => "numeric",
- 	      color  => "Red",
- 	      font   => "Arial",
- 	      enc    => "iso10646-1",
- 	      size   => "12",
- 	      format => "## ###.##",
- 	      halign => "right",
- 	      }, ]
-	    [ undef, undef, undef, undef, undef, {
- 	      type   => "text",
- 	      color  => "#e2e2e2",
- 	      font   => "LetterGothic",
- 	      enc    => "iso8859-1",
- 	      size   => "15",
- 	      format => undef,
- 	      halign => "left",
+        { label  => "Sheet 1",
+          maxrow => 2,
+          maxcol => 4,
+          cell   => [ undef,
+            [ undef, 1 ],
+            [ undef, undef, undef, undef, undef, "Nugget" ],
+            ],
+          attr   => [ undef,
+            [ undef, {
+              type    => "numeric",
+              fgcolor => "#ff0000",
+              bgcolor => undef,
+              font    => "Arial",
+              size    => undef,
+              format  => "## ##0.00",
+              halign  => "right",
+              valign  => "top",
+              uline   => 0,
+              bold    => 0,
+              italic  => 0,
+              wrap    => 0,
+              merged  => 0,
+              hidden  => 0,
+              locked  => 0,
+              enc     => "utf-8",
+              }, ]
+            [ undef, undef, undef, undef, undef, {
+              type    => "text",
+ 	      fgcolor => "#e2e2e2",
+              bgcolor => undef,
+              font    => "Letter Gothic",
+              size    => 15,
+              format  => undef,
+              halign  => "left",
+              valign  => "top",
+              uline   => 0,
+              bold    => 0,
+              italic  => 0,
+              wrap    => 0,
+              merged  => 0,
+              hidden  => 0,
+              locked  => 0,
+ 	      enc     => "iso8859-1",
  	      }, ]
  	  A1     => 1,
  	  B5     => "Nugget",
  	  },
+
+This has now been partially implemented. Excel only.
 
 =item Options
 

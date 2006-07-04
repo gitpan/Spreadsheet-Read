@@ -35,16 +35,16 @@ foreach my $txt ("files/test.sc", $content) {
 	    "Read/Parse sc file ".($clip?"clipped":"unclipped"));
 
 	ok (1, "Base values");
-	is (ref $sc,		"ARRAY",	"Return type");
+	is (ref $sc,			"ARRAY",	"Return type");
 	is ($sc->[0]{type},		"sc",		"Spreadsheet type");
-	is ($sc->[0]{sheets},	1,		"Sheet count");
+	is ($sc->[0]{sheets},		1,		"Sheet count");
 	is (ref $sc->[0]{sheet},	"HASH",		"Sheet list");
 	is (scalar keys %{$sc->[0]{sheet}},
-				    1,		"Sheet list count");
-	is ($sc->[0]{version},	undef,		"Parser version");
+					1,		"Sheet list count");
+	is ($sc->[0]{version}, $Spreadsheet::Read::VERSION, "Parser version");
 
-	is ($sc->[1]{maxcol},	10 - $clip,	"Columns");
-	is ($sc->[1]{maxrow},	28 - $clip,	"Rows");
+	is ($sc->[1]{maxcol},		10 - $clip,	"Columns");
+	is ($sc->[1]{maxrow},		28 - $clip,	"Rows");
 	is ($sc->[1]{cell}[1][22],	"  Workspace",	"Just checking one cell");
 	}
     }

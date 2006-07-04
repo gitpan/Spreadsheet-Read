@@ -10,7 +10,7 @@ for ( [ "xlscat",	"Convert Spreadsheet to plain text or CSV"	],
 my %wm = (
     NAME         => "Spreadsheet::Read",
     ABSTRACT     => "Read the data from a spreadsheet",
-    AUTHOR       => "H.Merijn Brand <merijn\@procura.nl>",
+    AUTHOR       => "H.Merijn Brand <h.merijn\@procura.nl>",
     VERSION_FROM => "Read.pm",
     EXE_FILES    => [ @exe ],
     PREREQ_FATAL => 0,

@@ -1,5 +1,13 @@
 Revision history for Spreadsheet::Read
 
+0.16	Tue 04 Jul 2006
+
+    - xlscat new option: --in-sep-char to force-define input sep-char for CSV
+    - More debug lines
+    - Parser name info in $ref->[0]
+    - SquirrelCalc now reports Spreadsheet::Read and its version for parser info
+    - Most of the attributes for Excel now implemented. Tested, but no test case
+
 0.15	Wed 21 Jun 2006
 
     - Small doc change from AnnoCPAN
