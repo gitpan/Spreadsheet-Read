@@ -1,14 +1,17 @@
-# http://module-build.sourceforge.net/META-spec.html
-#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
-name:         Spreadsheet-Read
-version:      0.17
-version_from: Read.pm
-installdirs:  site
-requires:
+--- #YAML:1.0
+name:                Spreadsheet-Read
+version:             0.18
+abstract:            Read the data from a spreadsheet
+license:             ~
+generated_by:        ExtUtils::MakeMaker version 6.32
+distribution_type:   module
+requires:     
     File::Temp:                    0.14
     Spreadsheet::ParseExcel:       0.26
     Spreadsheet::ReadSXC:          0.2
     Text::CSV_XS:                  0
-
-distribution_type: module
-generated_by: ExtUtils::MakeMaker version 6.30
+meta-spec:
+    url:     http://module-build.sourceforge.net/META-spec-v1.2.html
+    version: 1.2
+author:
+    - H.Merijn Brand <h.merijn@procura.nl>

@@ -1,5 +1,14 @@
 Revision history for Spreadsheet::Read
 
+0.18	Fri 27 Apr 2007
+
+    - use strict in Makefile.PL
+    - Added test_cover make target
+    - Added "ods" for OpenOffice conversions
+    - Added color tests for ods (but SR::RS doesn't support that yet)
+    - Switched from \d to 0-9 in regexp
+    - Added more test files and tests (increase coverage)
+
 0.17	Tue 04 Jul 2006
 
     - xlscat new option: --ansii to (try to) use the ansi colors for fields

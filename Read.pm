@@ -4,7 +4,7 @@ package Spreadsheet::Read;
 
 =head1 NAME
 
-Spreadsheet::Read - Read the data from a spreadsheet
+ Spreadsheet::Read - Read the data from a spreadsheet
 
 =head1 SYNOPSYS
 
@@ -21,7 +21,7 @@ Spreadsheet::Read - Read the data from a spreadsheet
 use strict;
 use warnings;
 
-our $VERSION = "0.17";
+our $VERSION = "0.18";
 sub  Version { $VERSION }
 
 use Exporter;
@@ -35,6 +35,7 @@ use Data::Dumper;
 my %can = map { $_ => 0 } qw( csv sxc xls prl );
 for (	[ csv	=> "Text::CSV_XS"		],
 #	[ csv	=> "Text::CSV"			],	# NYI
+	[ ods	=> "Spreadsheet::ReadSXC"	],
 	[ sxc	=> "Spreadsheet::ReadSXC"	],
 	[ xls	=> "Spreadsheet::ParseExcel"	],
 	[ prl	=> "Spreadsheet::Perl"		],
@@ -102,7 +103,7 @@ sub cr2cell
 # cell2cr ("D18") => (4, 18)
 sub cell2cr ($)
 {
-    my ($cc, $r) = ((uc $_[0]) =~ m/^([A-Z]+)(\d+)$/) or return (0, 0);
+    my ($cc, $r) = ((uc $_[0]) =~ m/^([A-Z]+)([0-9]+)$/) or return (0, 0);
     my $c = 0;
     while ($cc =~ s/^([A-Z])//) {
 	$c = 26 * $c + 1 + ord ($1) - ord ("A");
@@ -140,7 +141,7 @@ sub _clipsheets
 		grep { defined && m/\S/ } @{$ss->{cell}[$ss->{maxcol}]})
 		) {
 	    (my $col = cr2cell ($ss->{maxcol}, 1)) =~ s/1$//; 
-	    my $recol = qr{^$col(?=\d+)$};
+	    my $recol = qr{^$col(?=[0-9]+)$};
 	    delete $ss->{$_} for grep m/$recol/, keys %{$ss};
 	    $ss->{maxcol}--;
 	    }
@@ -220,18 +221,19 @@ sub ReadData ($;@)
 		my $sep = # If explicitely set, use it
 		   defined $opt{sep} ? $opt{sep} :
 		       # otherwise start auto-detect with quoted strings
-		       m/["\d];["\d;]/  ? ";"  :
-		       m/["\d],["\d,]/  ? ","  :
-		       m/["\d]\t["\d,]/ ? "\t" :
+		       m/["0-9];["0-9;]/	? ";"  :
+		       m/["0-9],["0-9,]/	? ","  :
+		       m/["0-9]\t["0-9,]/	? "\t" :
 		       # If neither, then for unquoted strings
-		       m/\w;[\w;]/      ? ";"  :
-		       m/\w,[\w,]/      ? ","  :
-		       m/\w\t[\w,]/     ? "\t" :
-					  ","  ;
+		       m/\w;[\w;]/		? ";"  :
+		       m/\w,[\w,]/		? ","  :
+		       m/\w\t[\w,]/		? "\t" :
+						  ","  ;
 		$debug > 1 and print STDERR "CSV sep_char '$sep', quote_char '$quo'\n";
 		$csv = Text::CSV_XS->new ({
 		    sep_char   => ($data[0]{sepchar} = $sep),
 		    quote_char => ($data[0]{quote}   = $quo),
+		    get_flags  => 1,
 		    binary     => 1,
 		    });
 		}
@@ -367,11 +369,11 @@ sub ReadData ($;@)
 	    );
 
 	for (split m/\s*[\r\n]\s*/, $txt) {
-	    if (m/^dimension.*of (\d+) rows.*of (\d+) columns/i) {
+	    if (m/^dimension.*of ([0-9]+) rows.*of ([0-9]+) columns/i) {
 		@{$data[1]}{qw(maxrow maxcol)} = ($1, $2);
 		next;
 		}
-	    s/^r(\d+)c(\d+)\s*=\s*// or next;
+	    s/^r([0-9]+)c([0-9]+)\s*=\s*// or next;
 	    my ($c, $r) = map { $_ + 1 } $2, $1;
 	    if (m/.* {(.*)}$/ or m/"(.*)"/) {
 		my $cell = cr2cell ($c, $r);
@@ -530,19 +532,19 @@ the sheets when accessing them by name:
 
 =over 2
 
-=item C<my $ref = ReadData ($source [, option => value [, ... ]]);>
+=item my $ref = ReadData ($source [, option => value [, ... ]]);
 
-=item C<my $ref = ReadData ("file.csv", sep =&gt; ',', quote => '"');>
+=item my $ref = ReadData ("file.csv", sep => ',', quote => '"');
 
-=item C<my $ref = ReadData ("file.xls");>
+=item my $ref = ReadData ("file.xls");
 
-=item C<my $ref = ReadData ("file.ods");>
+=item my $ref = ReadData ("file.ods");
 
-=item C<my $ref = ReadData ("file.sxc");>
+=item my $ref = ReadData ("file.sxc");
 
-=item C<my $ref = ReadData ("content.xml");>
+=item my $ref = ReadData ("content.xml");
 
-=item C<my $ref = ReadData ($content);>
+=item my $ref = ReadData ($content);
 
 Tries to convert the given file, string, or stream to the data
 structure described above.
@@ -593,7 +595,7 @@ parser.
 
 =back
 
-=item C<my $cell = cr2cell (col, row)>
+=item my $cell = cr2cell (col, row)
 
 C<cr2cell ()> converts a C<(column, row)> pair (1 based) to the
 traditional cell notation:
@@ -601,7 +603,7 @@ traditional cell notation:
   my $cell = cr2cell ( 4, 14); # $cell now "D14"
   my $cell = cr2cell (28,  4); # $cell now "AB4"
 
-=item C<my ($col, $row) = cell2cr ($cell)>
+=item my ($col, $row) = cell2cr ($cell)
 
 C<cell2cr ()> converts traditional cell notation to a C<(column, row)>
 pair (1 based):
@@ -611,7 +613,7 @@ pair (1 based):
 
 =item my @rows = rows ($ref)
 
-=item C<my @rows = Spreadsheet::Read::rows ($ss-&gt;[1])>
+=item my @rows = Spreadsheet::Read::rows ($ss->[1])
 
 Convert C<{cell}>'s C<[column][row]> to a C<[row][column]> list.
 
@@ -623,7 +625,7 @@ use argument list, or call it fully qualified.
 
 =item parses ($format)
 
-=item C<Spreadsheet::Read::parses ("CSV")>
+=item Spreadsheet::Read::parses ("CSV")
 
 C<parses ()> returns Spreadsheet::Read's capability to parse the
 required format.
@@ -633,7 +635,7 @@ use argument list, or call it fully qualified.
 
 =item my $rs_version = Version ()
 
-=item C<my $v = Spreadsheet::Read::Version ()>
+=item my $v = Spreadsheet::Read::Version ()
 
 Returns the current version of Spreadsheet::Read.
 
@@ -790,7 +792,7 @@ H.Merijn Brand, <h.m.brand@xs4all.nl>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2005-2006 H.Merijn Brand
+Copyright (C) 2005-2007 H.Merijn Brand
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself. 

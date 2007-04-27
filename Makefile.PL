@@ -1,3 +1,5 @@
+use strict;
+
 use ExtUtils::MakeMaker;
 
 my @exe;
@@ -16,33 +18,33 @@ my %wm = (
     PREREQ_FATAL => 0,
     PREREQ_PM    => {
 # Backend parsers
-	Text::CSV_XS			=> 0.00,
-	Spreadsheet::ReadSXC		=> 0.20,
-	Spreadsheet::ParseExcel		=> 0.26,
-#	Spreadsheet::Perl		=> 0.00,	# Not yet
+	"Text::CSV_XS"			=> 0.00,
+	"Spreadsheet::ReadSXC"		=> 0.20,
+	"Spreadsheet::ParseExcel"	=> 0.26,
+#	"Spreadsheet::Perl"		=> 0.00,	# Not yet
 
 	# Core modules
-	File::Temp			=> 0.14,
+	"File::Temp"			=> 0.14,
 
 # for ss2tk
-#	Tk				=> 804.027,
-#	Tk::NoteBook			=> 4.009,
-#	Tk::TableMatrix::Spreadsheet	=> 1.2,
+#	"Tk"				=> 804.027,
+#	"Tk::NoteBook"			=> 4.009,
+#	"Tk::TableMatrix::Spreadsheet"	=> 1.2,
 	},
     );
 
 my $rv = WriteMakefile (%wm);
-
-1;
 
 package MY;
 
 sub postamble
 {
     join "\n" =>
-	'test_cover:',
+	'cover test_cover:',
 	'	cover -delete',
 	'	HARNESS_PERL_SWITCHES=-MDevel::Cover $(MAKE) test',
 	'	cover',
 	'';
     } # postamble
+
+1;
