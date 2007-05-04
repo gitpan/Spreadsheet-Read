@@ -13,6 +13,7 @@ my %wm = (
     NAME         => "Spreadsheet::Read",
     ABSTRACT     => "Read the data from a spreadsheet",
     AUTHOR       => "H.Merijn Brand <h.merijn\@procura.nl>",
+    LICENSE	 => "perl",
     VERSION_FROM => "Read.pm",
     EXE_FILES    => [ @exe ],
     PREREQ_FATAL => 0,

@@ -1,8 +1,8 @@
 --- #YAML:1.0
 name:                Spreadsheet-Read
-version:             0.18
+version:             0.19
 abstract:            Read the data from a spreadsheet
-license:             ~
+license:             perl
 generated_by:        ExtUtils::MakeMaker version 6.32
 distribution_type:   module
 requires:     

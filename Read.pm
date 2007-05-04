@@ -21,7 +21,7 @@ package Spreadsheet::Read;
 use strict;
 use warnings;
 
-our $VERSION = "0.18";
+our $VERSION = "0.19";
 sub  Version { $VERSION }
 
 use Exporter;
@@ -443,7 +443,7 @@ sub ReadData ($;@)
 		foreach my $r (0 .. $#sheet) {
 		    my @row = @{$sheet[$r]} or next;
 		    foreach my $c (0 .. $#row) {
-			my $val = $row[$c] or next;
+			defined (my $val = $row[$c]) or next;
 			my $C = $c + 1;
 			$C > $sheet{maxcol} and $sheet{maxcol} = $C;
 			my $cell = cr2cell ($C, $r + 1);

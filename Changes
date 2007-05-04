@@ -1,5 +1,9 @@
 Revision history for Spreadsheet::Read
 
+0.19	Fri 04 May 2007
+
+    - Could not retreive '0' fields from OpenOffice (Jim Kelly)
+
 0.18	Fri 27 Apr 2007
 
     - use strict in Makefile.PL
