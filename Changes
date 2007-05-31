@@ -1,5 +1,14 @@
 Revision history for Spreadsheet::Read
 
+0.20	Fri 30 May 2007
+
+    - perlcritic OK
+    - CSV parsing now uses getline (), and auto-detects eol
+      Assumes first line does not contain embedded eol. This implies that
+      parsing CSV with embedded eol sequences is now safe.
+    - As I now also maintain Text::CSV_XS, I changed the references
+    - Changed TODO's from Text::CSV to Text::CSV_PP (::CSV is dated 1997)
+
 0.19	Fri 04 May 2007
 
     - Could not retreive '0' fields from OpenOffice (Jim Kelly)

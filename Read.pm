@@ -21,7 +21,7 @@ package Spreadsheet::Read;
 use strict;
 use warnings;
 
-our $VERSION = "0.19";
+our $VERSION = "0.20";
 sub  Version { $VERSION }
 
 use Exporter;
@@ -35,6 +35,7 @@ use Data::Dumper;
 my %can = map { $_ => 0 } qw( csv sxc xls prl );
 for (	[ csv	=> "Text::CSV_XS"		],
 #	[ csv	=> "Text::CSV"			],	# NYI
+#	[ csv	=> "Text::CSV_PP"		],	# NYI
 	[ ods	=> "Spreadsheet::ReadSXC"	],
 	[ sxc	=> "Spreadsheet::ReadSXC"	],
 	[ xls	=> "Spreadsheet::ParseExcel"	],
@@ -197,7 +198,7 @@ sub ReadData ($;@)
 	$can{csv} or die "CSV parser not installed";
 
 	$debug and print STDERR "Opening CSV $txt\n";
-	open my $in, "< $txt" or return;
+	open my $in, "<", $txt or return;
 	my $csv;
 	my @data = (
 	    {	type	=> "csv",
@@ -215,30 +216,33 @@ sub ReadData ($;@)
 		attr	=> [],
 		},
 	    );
-	while (<$in>) {
-	    unless ($csv) {
-		my $quo = defined $opt{quote} ? $opt{quote} : '"';
-		my $sep = # If explicitely set, use it
-		   defined $opt{sep} ? $opt{sep} :
-		       # otherwise start auto-detect with quoted strings
-		       m/["0-9];["0-9;]/	? ";"  :
-		       m/["0-9],["0-9,]/	? ","  :
-		       m/["0-9]\t["0-9,]/	? "\t" :
-		       # If neither, then for unquoted strings
-		       m/\w;[\w;]/		? ";"  :
-		       m/\w,[\w,]/		? ","  :
-		       m/\w\t[\w,]/		? "\t" :
-						  ","  ;
-		$debug > 1 and print STDERR "CSV sep_char '$sep', quote_char '$quo'\n";
-		$csv = Text::CSV_XS->new ({
-		    sep_char   => ($data[0]{sepchar} = $sep),
-		    quote_char => ($data[0]{quote}   = $quo),
-		    get_flags  => 1,
-		    binary     => 1,
-		    });
-		}
-	    $csv->parse ($_);
-	    my @row = $csv->fields () or next;
+	$_ = <$in>;
+	my $quo = defined $opt{quote} ? $opt{quote} : '"';
+	my $sep = # If explicitely set, use it
+	   defined $opt{sep} ? $opt{sep} :
+	       # otherwise start auto-detect with quoted strings
+	       m/["0-9];["0-9;]/	? ";"  :
+	       m/["0-9],["0-9,]/	? ","  :
+	       m/["0-9]\t["0-9,]/	? "\t" :
+	       # If neither, then for unquoted strings
+	       m/\w;[\w;]/		? ";"  :
+	       m/\w,[\w,]/		? ","  :
+	       m/\w\t[\w,]/		? "\t" :
+					  ","  ;
+	my ($eol) = m{([\r\n]+)\z};
+	$debug > 1 and print STDERR "CSV sep_char '$sep', quote_char '$quo'\n";
+	$csv = Text::CSV_XS->new ({
+	    sep_char   => ($data[0]{sepchar} = $sep),
+	    quote_char => ($data[0]{quote}   = $quo),
+	    eol        => $eol,
+	    get_flags  => 1,
+	    binary     => 1,
+	    });
+
+	$csv->parse ($_);
+	my $row = [ $csv->fields ];
+	do {
+	    my @row = @$row or next;
 	    my $r = ++$data[1]{maxrow};
 	    @row > $data[1]{maxcol} and $data[1]{maxcol} = @row;
 	    foreach my $c (0 .. $#row) {
@@ -248,7 +252,8 @@ sub ReadData ($;@)
 		$opt{cells} and $data[1]{$cell} = $val;
 		$opt{attr}  and $data[1]{attr}[$c + 1][$r] = { @def_attr };
 		}
-	    }
+	    } while ($row = $csv->getline ($in));
+
 	for (@{$data[1]{cell}}) {
 	    defined $_ or $_ = [];
 	    }
@@ -349,7 +354,7 @@ sub ReadData ($;@)
     if ($txt =~ m/^# .*SquirrelCalc/ or $txt =~ m/\.sc$/ && -f $txt) {
 	if ($txt !~ m/\n/ && -f $txt) {
 	    local $/;
-	    open my $sc, "< $txt" or return;
+	    open my $sc, "<", $txt or return;
 	    $txt = <$sc>;
 	    $txt =~ m/\S/ or return;
 	    }
@@ -407,7 +412,7 @@ sub ReadData ($;@)
 	# on filename with newline
 	elsif ($txt !~ m/^<\?xml/i and -f $txt) {
 	    $debug and print STDERR "Opening XML $txt\n";
-	    open my $f, "< $txt"	or  return;
+	    open my $f, "<", $txt	or  return;
 	    local $/;
 	    $txt = <$f>;
 	    }
@@ -479,7 +484,8 @@ For OpenOffice this module uses Spreadsheet::ReadSXC
 
 For Excel this module uses Spreadsheet::ParseExcel
 
-For CSV this module uses Text::CSV_XS
+For CSV this module uses Text::CSV_XS. Support for Text::CSV_PP is
+planned.
 
 For SquirrelCalc there is a very simplistic built-in parser
 
@@ -594,6 +600,12 @@ A value of 9 and higher will dump the entire structure from the backend
 parser.
 
 =back
+
+In case of CSV parsing, C<ReadData ()> will use the first line to
+auto-detect the separation character, if not explicitly passed, and the
+end-of-line sequence. This means that if the first line does not contain
+embedded newlines, the rest of the CSV file can have them, and they will
+be parsed correctly.
 
 =item my $cell = cr2cell (col, row)
 
@@ -729,7 +741,7 @@ I consider adding any spreadsheet interface that offers a usable API.
 
 Now that the different parsers are only activated if the module can be
 loaded, we need more flexibility is switching from Text::CSV_XS to
-Text::CSV in the parser part.
+Text::CSV_PP in the parser part.
 
 =item OO-ify
 
@@ -745,7 +757,7 @@ OO interface.
 
 =item Text::CSV_XS
 
-http://search.cpan.org/~jwied/
+http://search.cpan.org/~hmbrand/
 
 A pure perl version is available on http://search.cpan.org/~makamaka/
 
@@ -756,11 +768,6 @@ http://search.cpan.org/~kwitknr/
 =item Spreadsheet::ReadSXC
 
 http://search.cpan.org/~terhechte/
-
-=item Text::CSV_XS, Text::CSV
-
-http://search.cpan.org/~jwied/
-http://search.cpan.org/~alancitt/
 
 =item Spreadsheet::BasicRead
 
