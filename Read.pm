@@ -21,7 +21,7 @@ package Spreadsheet::Read;
 use strict;
 use warnings;
 
-our $VERSION = "0.20";
+our $VERSION = "0.21";
 sub  Version { $VERSION }
 
 use Exporter;
@@ -232,12 +232,12 @@ sub ReadData ($;@)
 	my ($eol) = m{([\r\n]+)\z};
 	$debug > 1 and print STDERR "CSV sep_char '$sep', quote_char '$quo'\n";
 	$csv = Text::CSV_XS->new ({
-	    sep_char   => ($data[0]{sepchar} = $sep),
-	    quote_char => ($data[0]{quote}   = $quo),
-	    eol        => $eol,
-	    get_flags  => 1,
-	    binary     => 1,
-	    });
+	    sep_char       => ($data[0]{sepchar} = $sep),
+	    quote_char     => ($data[0]{quote}   = $quo),
+	    eol            => $eol,
+	    keep_meta_info => 1,	# Ignored for Text::CSV_XS <= 0.27
+	    binary         => 1,
+	    }) or die "Cannot create a csv ('$sep', '$quo', '$eol') parser!";
 
 	$csv->parse ($_);
 	my $row = [ $csv->fields ];

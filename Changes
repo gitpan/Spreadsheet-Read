@@ -1,6 +1,10 @@
 Revision history for Spreadsheet::Read
 
-0.20	Fri 30 May 2007
+0.21	Thu 31 May 2007
+
+    - 
+
+0.20	Thu 31 May 2007
 
     - perlcritic OK
     - CSV parsing now uses getline (), and auto-detects eol
