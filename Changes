@@ -1,8 +1,16 @@
 Revision history for Spreadsheet::Read
 
-0.21	Thu 31 May 2007
+0.22	Mon 18 Jun 2007
 
-    - 
+    - 0.21 should already support Text::CSV_PP 1.05
+      Tested Text::CSV_PP 1.05 on bleadperl.
+    - Better detection of (not) installed modules
+    - Module requires perl 5.6.x
+
+0.21	Mon 18 Jun 2007
+
+    - Text::CSV_XS uses keep_meta_info instead of get_flags
+    - Removed always_quote from xlscat's CSV output
 
 0.20	Thu 31 May 2007
 

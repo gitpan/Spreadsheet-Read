@@ -21,7 +21,7 @@ package Spreadsheet::Read;
 use strict;
 use warnings;
 
-our $VERSION = "0.21";
+our $VERSION = "0.22";
 sub  Version { $VERSION }
 
 use Exporter;
@@ -29,21 +29,23 @@ our @ISA       = qw( Exporter );
 our @EXPORT    = qw( ReadData cell2cr cr2cell );
 our @EXPORT_OK = qw( parses rows );
 
-use File::Temp           qw( );
+use File::Temp   qw( );
 use Data::Dumper;
 
-my %can = map { $_ => 0 } qw( csv sxc xls prl );
-for (	[ csv	=> "Text::CSV_XS"		],
-#	[ csv	=> "Text::CSV"			],	# NYI
-#	[ csv	=> "Text::CSV_PP"		],	# NYI
-	[ ods	=> "Spreadsheet::ReadSXC"	],
-	[ sxc	=> "Spreadsheet::ReadSXC"	],
-	[ xls	=> "Spreadsheet::ParseExcel"	],
-	[ prl	=> "Spreadsheet::Perl"		],
-	) {
+my @parsers = (
+    [ csv	=> "Text::CSV_XS"		],
+    [ csv	=> "Text::CSV_PP"		],
+#   [ csv	=> "Text::CSV"			],	# NYI
+    [ ods	=> "Spreadsheet::ReadSXC"	],
+    [ sxc	=> "Spreadsheet::ReadSXC"	],
+    [ xls	=> "Spreadsheet::ParseExcel"	],
+    [ prl	=> "Spreadsheet::Perl"		],
+    );
+my %can = map { $_->[0] => 0 } @parsers;
+for (@parsers) {
     my ($flag, $mod) = @$_;
     $can{$flag} and next;
-    eval "require $mod; \$can{$flag} = '$mod'";
+    eval "require $mod; \@_ or \$can{\$flag} = '$mod'";
     }
 $can{sc} = 1;	# SquirelCalc is built-in
 
@@ -202,8 +204,8 @@ sub ReadData ($;@)
 	my $csv;
 	my @data = (
 	    {	type	=> "csv",
-		parser  => "Text::CSV_XS",
-		version	=> $Text::CSV_XS::VERSION,
+		parser  => $can{csv},
+		version	=> $can{csv}->VERSION,
 		quote   => '"',
 		sepchar => ',',
 		sheets	=> 1,
@@ -231,7 +233,7 @@ sub ReadData ($;@)
 					  ","  ;
 	my ($eol) = m{([\r\n]+)\z};
 	$debug > 1 and print STDERR "CSV sep_char '$sep', quote_char '$quo'\n";
-	$csv = Text::CSV_XS->new ({
+	$csv = $can{csv}->new ({
 	    sep_char       => ($data[0]{sepchar} = $sep),
 	    quote_char     => ($data[0]{quote}   = $quo),
 	    eol            => $eol,
@@ -476,7 +478,7 @@ sub ReadData ($;@)
 
 =head1 DESCRIPTION
 
-Spreadsheet::Read tries to transparantly read *any* spreadsheet and
+Spreadsheet::Read tries to transparently read *any* spreadsheet and
 return its content in a universal manner independent of the parsing
 module that does the actual spreadsheet scanning.
 
@@ -484,8 +486,8 @@ For OpenOffice this module uses Spreadsheet::ReadSXC
 
 For Excel this module uses Spreadsheet::ParseExcel
 
-For CSV this module uses Text::CSV_XS. Support for Text::CSV_PP is
-planned.
+For CSV this module uses Text::CSV_XS (0.29 or up prefered) or
+Text_PP (1.05 or up required).
 
 For SquirrelCalc there is a very simplistic built-in parser
 
@@ -529,7 +531,7 @@ The C<cell> hash entry contains unformatted data, while the hash entries
 with the traditional labels contain the formatted values (if applicable).
 
 The control hash (the first entry in the returned array ref), contains
-some spreadsheet metadata. The entry C<sheet> is there to be able to find
+some spreadsheet meta-data. The entry C<sheet> is there to be able to find
 the sheets when accessing them by name:
 
   my %sheet2 = %{$ref->[$ref->[0]{sheet}{"Sheet 2"}]};
@@ -737,12 +739,6 @@ names C<meta>, or just be new values in the C<attr> hashes.
 
 I consider adding any spreadsheet interface that offers a usable API.
 
-=item Safety / flexibility
-
-Now that the different parsers are only activated if the module can be
-loaded, we need more flexibility is switching from Text::CSV_XS to
-Text::CSV_PP in the parser part.
-
 =item OO-ify
 
 Consider making the ref an object, though I currently don't see the big
@@ -755,7 +751,7 @@ OO interface.
 
 =over 2
 
-=item Text::CSV_XS
+=item Text::CSV_XS, Text::CSV_PP
 
 http://search.cpan.org/~hmbrand/
 

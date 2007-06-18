@@ -30,6 +30,8 @@ If the C<make test> warns you in the xls tests, read the message and
 apply the generated patch. Spreadsheet::ParseExcel has a small bug in
 the parsing of the default format regarding UTF-8.
 
+This module requires perl-5.6.x or newer.
+
 =head1 TODO
 
   * Make tests for examples/xlscat

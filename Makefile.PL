@@ -1,5 +1,7 @@
 use strict;
 
+require 5.006;
+
 use ExtUtils::MakeMaker;
 
 my @exe;
@@ -13,13 +15,13 @@ my %wm = (
     NAME         => "Spreadsheet::Read",
     ABSTRACT     => "Read the data from a spreadsheet",
     AUTHOR       => "H.Merijn Brand <h.merijn\@procura.nl>",
-    LICENSE	 => "perl",
     VERSION_FROM => "Read.pm",
     EXE_FILES    => [ @exe ],
     PREREQ_FATAL => 0,
     PREREQ_PM    => {
 # Backend parsers
 	"Text::CSV_XS"			=> 0.00,
+	"Text::CSV_PP"			=> 1.05,
 	"Spreadsheet::ReadSXC"		=> 0.20,
 	"Spreadsheet::ParseExcel"	=> 0.26,
 #	"Spreadsheet::Perl"		=> 0.00,	# Not yet
@@ -33,6 +35,7 @@ my %wm = (
 #	"Tk::TableMatrix::Spreadsheet"	=> 1.2,
 	},
     );
+$ExtUtils::MakeMaker::VERSION > 6.30 and $wm{LICENSE} = "perl";
 
 my $rv = WriteMakefile (%wm);
 

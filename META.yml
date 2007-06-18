@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                Spreadsheet-Read
-version:             0.21
+version:             0.22
 abstract:            Read the data from a spreadsheet
 license:             perl
 generated_by:        ExtUtils::MakeMaker version 6.32
@@ -9,6 +9,7 @@ requires:
     File::Temp:                    0.14
     Spreadsheet::ParseExcel:       0.26
     Spreadsheet::ReadSXC:          0.2
+    Text::CSV_PP:                  1.05
     Text::CSV_XS:                  0
 meta-spec:
     url:     http://module-build.sourceforge.net/META-spec-v1.2.html

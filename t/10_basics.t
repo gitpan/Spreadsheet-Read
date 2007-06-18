@@ -94,7 +94,8 @@ for (undef, "", " ", 0, 1, [], {}) {
     is ($ref, undef, "Illegal ReadData ({ $arg })");
     }
 for (undef, "", " ", 0, 1, [], {}) {
-    my $ref = ReadData ("Read.pm",   sep => $_);
+    my $ref;
+    eval { $ref = ReadData ("Read.pm", sep => $_); };
     my $arg = defined $_ ? $_ : "-- undef --";
     is ($ref, undef, "Illegal ReadData ({ $arg })");
     }

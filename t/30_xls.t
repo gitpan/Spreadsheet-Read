@@ -96,7 +96,7 @@ foreach my $cell (qw( A18 B1 B6 B20 C26 D14 )) {
     }
 
 eval {
-    use Spreadsheet::ParseExcel::FmtDefault;
+    eval "use Spreadsheet::ParseExcel::FmtDefault";
     my ($pm) = map { $INC{$_} } grep m{FmtDefault.pm$}i => keys %INC;
     if (open PM, "< $pm") {
 	my $l;
