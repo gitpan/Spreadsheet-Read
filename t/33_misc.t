@@ -16,7 +16,7 @@ else {
 my $xls;
 
 {   local *STDERR;	# We want the debug activated, but not shown
-    open   STDERR, ">", "/dev/null";
+    open   STDERR, ">", "/dev/null" or die "/dev/null: $!\n";
     $xls = ReadData ("files/misc.xls",
 	# All defaults reversed
 	rc		=> 0,

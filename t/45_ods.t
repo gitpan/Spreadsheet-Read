@@ -15,7 +15,8 @@ else {
 
 my $content;
 {   local $/;
-    open my $xml, "< files/content.xml";
+    open my $xml, "<", "files/content.xml" or die "files/content.xml: $!\n";
+    binmode $xml;
     $content = <$xml>;
     }
 

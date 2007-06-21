@@ -21,7 +21,7 @@ package Spreadsheet::Read;
 use strict;
 use warnings;
 
-our $VERSION = "0.22";
+our $VERSION = "0.23";
 sub  Version { $VERSION }
 
 use Exporter;
@@ -40,6 +40,9 @@ my @parsers = (
     [ sxc	=> "Spreadsheet::ReadSXC"	],
     [ xls	=> "Spreadsheet::ParseExcel"	],
     [ prl	=> "Spreadsheet::Perl"		],
+
+    # Helper modules
+    [ ios	=> "IO::Scalar"			],
     );
 my %can = map { $_->[0] => 0 } @parsers;
 for (@parsers) {
@@ -264,18 +267,33 @@ sub ReadData ($;@)
 	}
 
     # From /etc/magic: Microsoft Office Document
+    my $xls_from_txt;
     if ($txt =~ m/^(\376\067\0\043
 		   |\320\317\021\340\241\261\032\341
 		   |\333\245-\0\0\0)/x) {
 	$can{xls} or die "Spreadsheet::ParseExcel not installed";
-	$tmpfile = File::Temp->new (SUFFIX => ".xls", UNLINK => 1);
-	print $tmpfile $txt;
-	$txt = "$tmpfile";
+	if ($can{ios}) { # Do not use a temp file if IO::Scalar is available
+	    $xls_from_txt = \$txt;
+	    }
+	else {
+	    $tmpfile = File::Temp->new (SUFFIX => ".xls", UNLINK => 1);
+	    binmode $tmpfile;
+	    print   $tmpfile $txt;
+	    $txt = "$tmpfile";
+	    }
 	}
-    if ($txt =~ m/\.xls$/i and -f $txt) {
+    if ($xls_from_txt or $txt =~ m/\.xls$/i && -f $txt) {
 	$can{xls} or die "Spreadsheet::ParseExcel not installed";
-	$debug and print STDERR "Opening XLS $txt\n";
-	my $oBook = Spreadsheet::ParseExcel::Workbook->Parse ($txt);
+	my $oBook;
+	if ($xls_from_txt) {
+	    $debug and print STDERR "Opening XLS \$txt\n";
+	    $oBook = Spreadsheet::ParseExcel::Workbook->Parse (\$txt);
+	    }
+	else {
+	    $debug and print STDERR "Opening XLS $txt\n";
+	    $oBook = Spreadsheet::ParseExcel::Workbook->Parse ($txt);
+	    }
+	$oBook or return;
 	$debug > 8 and print STDERR Data::Dumper->Dump ([$oBook],["oBook"]);
 	my @data = ( {
 	    type	=> "xls",
@@ -557,8 +575,9 @@ the sheets when accessing them by name:
 Tries to convert the given file, string, or stream to the data
 structure described above.
 
-Precessing data from a stream or content is supported for Excel (through a
-File::Temp temporary file), or for XML (OpenOffice), but not for CSV.
+Precessing data from a stream or content is supported for Excel
+(through a File::Temp temporary file or IO::Scalar when available),
+or for XML (OpenOffice), but not for CSV.
 
 ReadSXC does preserve sheet order as of version 0.20.
 

@@ -22,7 +22,8 @@ else {
 
 my $content;
 {   local $/;
-    open my $sc, "< files/test.sc";
+    open my $sc, "<", "files/test.sc" or die "files/test.sc: $!\n";
+    binmode $sc;
     $content = <$sc>;
     isnt ($content, undef, "Content is defined");
     isnt ($content, "",    "Content is filled");

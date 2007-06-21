@@ -1,5 +1,13 @@
 Revision history for Spreadsheet::Read
 
+0.23	Thu 21 Jun 2007
+
+    - Use IO::Scalar instead of File::Temp when installed
+      Thanks to David Cantrell for making a OpenBSD test box available!
+    - use binmode () when opening files
+    - Also use 3-arg open in test files
+    - die if test files cannot be opene'ed
+
 0.22	Mon 18 Jun 2007
 
     - 0.21 should already support Text::CSV_PP 1.05
