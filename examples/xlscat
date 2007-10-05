@@ -1,17 +1,16 @@
 #!/pro/bin/perl
 
 # xls2cat: show XLS/SXC file as Text
-#	  (m)'06 [23-06-2006] Copyright H.M.Brand 2005-2006
-
-our $VERSION = "1.4";
+#	  (m)'07 [26-06-2007] Copyright H.M.Brand 2005-2007
 
 use strict;
 use warnings;
 
-sub usage ($;$)
+our $VERSION = "1.5";
+
+sub usage
 {
-    my ($err, $msg) = (@_, "");
-    $err and select STDERR;
+    my $err = shift and select STDERR;
     print
 	"usage: xlscat [-s <sep>] [-L] [-u] [ Selection ] file.xls\n",
 	"              [-c | -m]       [-u] [ Selection ] file.xls\n",
@@ -38,11 +37,9 @@ sub usage ($;$)
 	"       -R <rows>   Only print rows    <rows>. Default is 'all'\n",
 	"       -C <cols>   Only print columns <cols>. Default is 'all'\n",
 	"       -F <flds>   Only fields <flds> e.g. -FA3,B16\n";
-    $msg and print "$msg\n";
+    @_ and print join "\n", @_, "";
     exit $err;
     } # usage
-
-@ARGV == 1 and $ARGV[0] eq "-?" || $ARGV[0] =~ m/^-+help$/ and usage (0);
 
 use Getopt::Long qw(:config bundling nopermute noignorecase);
 my $opt_c;		# Generate CSV
@@ -60,6 +57,8 @@ my $opt_A = 0;		# Show field colors in ansi escapes
 my $clip  = 1;
 my $sep;		# Input field sep for CSV
 GetOptions (
+    "help|?"		=> sub { usage (0); },
+
     "c|csv"		=> sub { $opt_c = "," },
     "m|ms"		=> sub { $opt_c = ";" },
     "insepchar".
@@ -144,7 +143,7 @@ my $v_fmt = $opt_C || $opt_R || $opt_F ? "" : "%6d x %6d%s";
 # 35 Magenta
 # 36 Cyan
 # 37 White
-sub color_reduce ($$)
+sub color_reduce
 {
     my ($rgb, $base) = @_;
     defined $rgb or return "";

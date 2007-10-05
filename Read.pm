@@ -21,7 +21,7 @@ package Spreadsheet::Read;
 use strict;
 use warnings;
 
-our $VERSION = "0.23";
+our $VERSION = "0.24";
 sub  Version { $VERSION }
 
 use Exporter;
@@ -244,25 +244,32 @@ sub ReadData ($;@)
 	    binary         => 1,
 	    }) or die "Cannot create a csv ('$sep', '$quo', '$eol') parser!";
 
+	# while ($row = $csv->getline () {
+	# doesn't work, because I have to fetch the first line for auto
+	# detecting sep and quote
 	$csv->parse ($_);
 	my $row = [ $csv->fields ];
 	do {
-	    my @row = @$row or next;
-	    my $r = ++$data[1]{maxrow};
-	    @row > $data[1]{maxcol} and $data[1]{maxcol} = @row;
-	    foreach my $c (0 .. $#row) {
-		my $val = $row[$c];
-		my $cell = cr2cell ($c + 1, $r);
-		$opt{rc}    and $data[1]{cell}[$c + 1][$r] = $val;
-		$opt{cells} and $data[1]{$cell} = $val;
-		$opt{attr}  and $data[1]{attr}[$c + 1][$r] = { @def_attr };
+	    if (my @row = @$row) {
+		my $r = ++$data[1]{maxrow};
+		@row > $data[1]{maxcol} and $data[1]{maxcol} = @row;
+		foreach my $c (0 .. $#row) {
+		    my $val = $row[$c];
+		    my $cell = cr2cell ($c + 1, $r);
+		    $opt{rc}    and $data[1]{cell}[$c + 1][$r] = $val;
+		    $opt{cells} and $data[1]{$cell} = $val;
+		    $opt{attr}  and $data[1]{attr}[$c + 1][$r] = { @def_attr };
+		    }
 		}
-	    } while ($row = $csv->getline ($in));
+	    else {
+		$csv = undef;
+		}
+	    } while ($csv && ($row = $csv->getline ($in)));
+	close $in;
 
 	for (@{$data[1]{cell}}) {
 	    defined $_ or $_ = [];
 	    }
-	close $in;
 	return _clipsheets $opt{clip}, [ @data ];
 	}
 

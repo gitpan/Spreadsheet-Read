@@ -1,5 +1,13 @@
 Revision history for Spreadsheet::Read
 
+0.24	Thu 05 Oct 2007
+
+    - -? and --help in utils moved to Getopt::Long
+    - Adjusted copyright notice in utils
+    - removed prototypes in utils
+    - next is illegal in do {} while (); (Johan Vromans)
+      only happens with old Text::CSV_XS
+
 0.23	Thu 21 Jun 2007
 
     - Use IO::Scalar instead of File::Temp when installed

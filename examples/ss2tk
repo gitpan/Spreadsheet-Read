@@ -2,31 +2,31 @@
 #!/opt/perl/bin/perl
 
 # ss2tk: show SpreadSheet file in Tk::TableMatrix::Spreadsheet (*)
-#	  (m)'05 [31-10-2005] Copyright H.M.Brand 2005-2006
-
-our $VERSION = "2.0";
+#	  (m)'07 [26-06-2007] Copyright H.M.Brand 2005-2007
 
 use strict;
 use warnings;
 
-sub usage ()
+our $VERSION = "2.1";
+
+sub usage
 {
-    print STDERR
+    my $err = shift and select STDERR;
+    print
 	"usage: ss2tk [-w <width>] [X11 options] file.xls [<pattern>]\n",
 	"       -w <width> use <width> as default column width (4)\n";
-    exit;
+    exit $err;
     } # usage
-
-@ARGV == 1 and $ARGV[0] eq "-?" || $ARGV[0] =~ m/^-+help$/ and usage ();
 
 use Getopt::Long qw(:config bundling nopermute passthrough);
 my $wdt = 4;	# Default minimal column width
 my $unq = 0;	# Uniq columns only
 
 GetOptions (
+    "help|?"	=> sub { usage (0); },
     "w=i"	=> \$wdt,
     "u"		=> \$unq,
-    ) or usage;
+    ) or usage (1);
 
 use Tk;
 use Tk::NoteBook;
@@ -38,7 +38,7 @@ Tk::CmdLine->LoadResources ();
 # This will allow calls like # ss2tk -fg Blue4 blah.csv
 Tk::CmdLine->SetArguments ();
 
-@ARGV && -f $ARGV[0] or usage;
+@ARGV && -f $ARGV[0] or usage (1);
 my $title = $ARGV[0];
 my %unq;
 
@@ -98,7 +98,7 @@ foreach my $sht (1 .. $ref->[0]{sheets}) {
     $ss->tagConfigure ("sel",    -bg => "gray95",  -justify => "left");
 
     my ($pv, $sv, $si) = ("", "", 0);
-    sub search ($)
+    sub search
     {
 	$sv or return;
 	$sv eq $pv && !$_[0] and return;
