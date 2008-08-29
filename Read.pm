@@ -21,9 +21,10 @@ package Spreadsheet::Read;
 use strict;
 use warnings;
 
-our $VERSION = "0.25";
+our $VERSION = "0.26";
 sub  Version { $VERSION }
 
+use Carp;
 use Exporter;
 our @ISA       = qw( Exporter );
 our @EXPORT    = qw( ReadData cell2cr cr2cell );
@@ -100,7 +101,7 @@ sub cr2cell
     while ($c) {
 	use integer;
 
-	substr ($cell, 0, 0) = chr (--$c % 26 + ord "A");
+	substr $cell, 0, 0, chr (--$c % 26 + ord "A");
 	$c /= 26;
 	}
     "$cell$r";
@@ -193,6 +194,7 @@ sub ReadData ($;@)
     defined $opt{cells}	or $opt{cells}	= 1;
     defined $opt{attr}	or $opt{attr}	= 0;
     defined $opt{clip}	or $opt{clip}	= $opt{cell};
+    defined $opt{dtfmt} or $opt{dtfmt}	= "yyyy-mm-dd"; # Format 14
 
     # $debug = $opt{debug} // 0;
     $debug = defined $opt{debug} ? $opt{debug} : 0;
@@ -200,7 +202,7 @@ sub ReadData ($;@)
 
     # CSV not supported from streams
     if ($txt =~ m/\.(csv)$/i and -f $txt) {
-	$can{csv} or die "CSV parser not installed";
+	$can{csv} or croak "CSV parser not installed";
 
 	$debug and print STDERR "Opening CSV $txt\n";
 	open my $in, "<", $txt or return;
@@ -242,7 +244,7 @@ sub ReadData ($;@)
 	    eol            => $eol,
 	    keep_meta_info => 1,	# Ignored for Text::CSV_XS <= 0.27
 	    binary         => 1,
-	    }) or die "Cannot create a csv ('$sep', '$quo', '$eol') parser!";
+	    }) or croak "Cannot create a csv ('$sep', '$quo', '$eol') parser!";
 
 	# while ($row = $csv->getline () {
 	# doesn't work, because I have to fetch the first line for auto
@@ -278,7 +280,7 @@ sub ReadData ($;@)
     if ($txt =~ m/^(\376\067\0\043
 		   |\320\317\021\340\241\261\032\341
 		   |\333\245-\0\0\0)/x) {
-	$can{xls} or die "Spreadsheet::ParseExcel not installed";
+	$can{xls} or croak "Spreadsheet::ParseExcel not installed";
 	if ($can{ios}) { # Do not use a temp file if IO::Scalar is available
 	    $xls_from_txt = \$txt;
 	    }
@@ -290,7 +292,7 @@ sub ReadData ($;@)
 	    }
 	}
     if ($xls_from_txt or $txt =~ m/\.xls$/i && -f $txt) {
-	$can{xls} or die "Spreadsheet::ParseExcel not installed";
+	$can{xls} or croak "Spreadsheet::ParseExcel not installed";
 	my $oBook;
 	if ($xls_from_txt) {
 	    $debug and print STDERR "Opening XLS \$txt\n";
@@ -309,6 +311,16 @@ sub ReadData ($;@)
 	    sheets	=> $oBook->{SheetCount},
 	    sheet	=> {},
 	    } );
+	# Overrule the default date format strings
+	my %def_fmt = (
+	    0x0E	=> lc $opt{dtfmt},	# m-d-yy
+	    0x0F	=> "d-mmm-yyyy",	# d-mmm-yy
+	    0x11	=> "mmm-yyyy",		# mmm-yy
+	    0x16	=> "yyyy-mm-dd hh:mm",	# m-d-yy h:mm
+	    );
+	$oBook->{FormatStr}{$_} = $def_fmt{$_} for keys %def_fmt;
+	my $oFmt = Spreadsheet::ParseExcel::FmtDefault->new;
+
 	$debug and print STDERR "\t$data[0]{sheets} sheets\n";
 	foreach my $oWkS (@{$oBook->{Worksheet}}) {
 	    $opt{clip} and !defined $oWkS->{Cells} and next; # Skip empty sheets
@@ -331,10 +343,26 @@ sub ReadData ($;@)
 			defined (my $val = $oWkC->{Val})  or next;
 			my $cell = cr2cell ($c + 1, $r + 1);
 			$opt{rc}    and $sheet{cell}[$c + 1][$r + 1] = $val;	# Original
-			$opt{cells} and $sheet{$cell} = $oWkC->Value;	# Formatted
+			my $FmT = $oWkC->{Format};
+			my $fmt = $FmT->{FmtIdx}
+			   ? $oBook->{FormatStr}{$FmT->{FmtIdx}}
+			   : undef;
+			if (defined $fmt) {
+			    # Fixed in 0.33 and up
+			    $oWkC->{Type} eq "Numeric" && $fmt =~ m{^[dmy][-\\/dmy]*$} and
+				$oWkC->{Type} = "Date";
+			    $fmt =~ s/\\//g;
+			    }
+			$opt{cells} and	# Formatted value
+			    $sheet{$cell} = exists $def_fmt{$FmT->{FmtIdx}}
+				? $oFmt->ValFmt ($oWkC, $oBook)
+				: $oWkC->Value;
 			if ($opt{attr}) {
-			    my $FmT = $oWkC->{Format};
 			    my $FnT = $FmT->{Font};
+			    my $fmt = $FmT->{FmtIdx}
+			       ? $oBook->{FormatStr}{$FmT->{FmtIdx}}
+			       : undef;
+			    $fmt and $fmt =~ s/\\//g;
 			    $sheet{attr}[$c + 1][$r + 1] = {
 				@def_attr,
 
@@ -343,9 +371,7 @@ sub ReadData ($;@)
 				merged	=> $oWkC->{Merged} || 0,
 				hidden	=> $FmT->{Hidden},
 				locked	=> $FmT->{Lock},
-				format  => $FmT->{FmtIdx}
-					   ? $oBook->{FormatStr}{$FmT->{FmtIdx}}
-					   : undef,
+				format  => $fmt,
 				halign  => [ undef, qw( left center right
 					    fill justify ), undef,
 					    "equal_space" ]->[$FmT->{AlignH}],
@@ -424,7 +450,7 @@ sub ReadData ($;@)
 	}
 
     if ($txt =~ m/^<\?xml/ or -f $txt) {
-	$can{sxc} or die "Spreadsheet::ReadSXC not installed";
+	$can{sxc} or croak "Spreadsheet::ReadSXC not installed";
 	my $sxc_options = { OrderBySheet => 1 }; # New interface 0.20 and up
 	my $sxc;
 	   if ($txt =~ m/\.(sxc|ods)$/i) {
@@ -569,7 +595,7 @@ the sheets when accessing them by name:
 
 =item my $ref = ReadData ("file.csv", sep => ',', quote => '"');
 
-=item my $ref = ReadData ("file.xls");
+=item my $ref = ReadData ("file.xls", dtfmt => "yyyy-mm-dd");
 
 =item my $ref = ReadData ("file.ods");
 
@@ -618,6 +644,13 @@ Set separator for CSV. Default is comma C<,>.
 =item quote
 
 Set quote character for CSV. Default is C<">.
+
+=item dtfmt
+
+Set the format for M$Excel date fields that are set to use the default
+date format. The default format in Excel is 'm-d-yy', which is both
+not year 2000 safe, nor very useful. The default is now 'yyyy-mm-dd',
+which is more ISO-like.
 
 =item debug
 
@@ -821,7 +854,7 @@ H.Merijn Brand, <h.m.brand@xs4all.nl>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2005-2007 H.Merijn Brand
+Copyright (C) 2005-2008 H.Merijn Brand
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself. 

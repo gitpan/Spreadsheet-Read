@@ -5,11 +5,14 @@ require 5.006;
 use ExtUtils::MakeMaker;
 
 my @exe;
-for ( [ "xlscat",	"Convert Spreadsheet to plain text or CSV"	],
-      [ "ss2tk",	"Show a Spreadsheet in Perl/Tk"			],
-      ) {
-    prompt ("Do you want to install '$_->[0]' ($_->[1]) ? ", "n") =~ m/[Yy]/ and
-	push @exe, "examples/$_->[0]";
+unless (exists $ENV{AUTOMATED_TESTING} and $ENV{AUTOMATED_TESTING} == 1) {
+    for ( [ "xlscat",	"Convert Spreadsheet to plain text or CSV"	],
+	  [ "ss2tk",	"Show a Spreadsheet in Perl/Tk"			],
+	  [ "xls2csv",	"Wrapper around xlscat for easy XLS => CSV"	],
+	  ) {
+	prompt ("Do you want to install '$_->[0]' ($_->[1]) ? ", "n") =~ m/[Yy]/ and
+	    push @exe, "examples/$_->[0]";
+	}
     }
 my %wm = (
     NAME         => "Spreadsheet::Read",
@@ -52,10 +55,15 @@ sub postamble
 {
     join "\n" =>
 	'cover test_cover:',
-	'	cover -delete',
-	'	HARNESS_PERL_SWITCHES=-MDevel::Cover $(MAKE) test',
-	'	cover',
-	'';
+	'	ccache -C',
+	'	cover -test',
+	'',
+	'fixmeta:	distmeta',
+	'	perl sandbox/genMETA.pl',
+	'',
+	'tgzdist:	fixmeta $(DISTVNAME).tar.gz distcheck',
+	'	-@mv -f $(DISTVNAME).tar.gz $(DISTVNAME).tgz',
+	'	-@cpants_lint.pl $(DISTVNAME).tgz';
     } # postamble
 
 1;
