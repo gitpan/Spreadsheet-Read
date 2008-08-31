@@ -1,4 +1,4 @@
---- #YAML:1.0
+--- #YAML:1.4
 name:                   Read
 version:                0.27
 abstract:               Meta-Wrapper for reading spreadsheet data
