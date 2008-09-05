@@ -21,7 +21,7 @@ package Spreadsheet::Read;
 use strict;
 use warnings;
 
-our $VERSION = "0.27";
+our $VERSION = "0.28";
 sub  Version { $VERSION }
 
 use Carp;
@@ -225,7 +225,7 @@ sub ReadData ($;@)
 	    );
 	$_ = <$in>;
 	my $quo = defined $opt{quote} ? $opt{quote} : '"';
-	my $sep = # If explicitely set, use it
+	my $sep = # If explicitly set, use it
 	   defined $opt{sep} ? $opt{sep} :
 	       # otherwise start auto-detect with quoted strings
 	       m/["0-9];["0-9;]/	? ";"  :
@@ -368,20 +368,21 @@ sub ReadData ($;@)
 
 				type    => lc $oWkC->{Type},
 				enc     => $oWkC->{Code},
-				merged	=> $oWkC->{Merged} || 0,
-				hidden	=> $FmT->{Hidden},
-				locked	=> $FmT->{Lock},
+				merged  => $oWkC->{Merged} || 0,
+				hidden  => $FmT->{Hidden},
+				locked  => $FmT->{Lock},
 				format  => $fmt,
 				halign  => [ undef, qw( left center right
-					    fill justify ), undef,
-					    "equal_space" ]->[$FmT->{AlignH}],
+					   fill justify ), undef,
+					   "equal_space" ]->[$FmT->{AlignH}],
 				valign  => [ qw( top center bottom justify
-					    equal_space )]->[$FmT->{AlignV}],
+					   equal_space )]->[$FmT->{AlignV}],
 				wrap    => $FmT->{Wrap},
 				font    => $FnT->{Name},
-				bold	=> $FnT->{Bold},
-				italic	=> $FnT->{Italic},
-				uline	=> $FnT->{Underline},
+				size    => $FnT->{Height},
+				bold    => $FnT->{Bold},
+				italic  => $FnT->{Italic},
+				uline   => $FnT->{Underline},
 				fgcolor => _xls_color ($FnT->{Color}),
 				bgcolor => _xls_color (@{$FmT->{Fill}}),
 				};
@@ -538,7 +539,7 @@ For OpenOffice this module uses Spreadsheet::ReadSXC
 For Excel this module uses Spreadsheet::ParseExcel
 
 For CSV this module uses Text::CSV_XS (0.29 or up prefered) or
-Text_PP (1.05 or up required).
+Text::CSV_PP (1.05 or up required).
 
 For SquirrelCalc there is a very simplistic built-in parser
 
@@ -651,6 +652,12 @@ Set the format for M$Excel date fields that are set to use the default
 date format. The default format in Excel is 'm-d-yy', which is both
 not year 2000 safe, nor very useful. The default is now 'yyyy-mm-dd',
 which is more ISO-like.
+
+Note that date formatting in M$Excel is not reliable at all, as it will
+store/replace/change the date field separator in already stored formats
+if you change your locale settings. So the above mentioned default can
+be either "m-d-yy" OR "m/d/yy" depending on what that specific character
+happened to be at the time the user saved the file.
 
 =item debug
 
@@ -812,37 +819,41 @@ OO interface.
 
 =item Text::CSV_XS, Text::CSV_PP
 
-http://search.cpan.org/~hmbrand/
+http://search.cpan.org/dist/Text-CSV_XS ,
+http://search.cpan.org/dist/Text-CSV_PP , and
+http://search.cpan.org/dist/Text-CSV .
 
-A pure perl version is available on http://search.cpan.org/~makamaka/
+Text::CSV is a wrapper over Text::CSV_XS (the fast XS version) and/or
+Text::CSV_PP (the pure perl version)
 
 =item Spreadsheet::ParseExcel
 
-http://search.cpan.org/~kwitknr/
+http://search.cpan.org/dist/Spreadsheet-ParseExcel
 
 =item Spreadsheet::ReadSXC
 
-http://search.cpan.org/~terhechte/
+http://search.cpan.org/dist/Spreadsheet-ReadSXC
 
 =item Spreadsheet::BasicRead
 
-http://search.cpan.org/~gng/ for xlscat likewise functionality (Excel only)
+http://search.cpan.org/dist/Spreadsheet-BasicRead
+for xlscat likewise functionality (Excel only)
 
 =item Spreadsheet::ConvertAA
 
-http://search.cpan.org/~nkh/ for an alternative set of cell2cr () /
-cr2cell () pair
+http://search.cpan.org/dist/Spreadsheet-ConvertAA
+for an alternative set of cell2cr () / cr2cell () pair
 
 =item Spreadsheet::Perl
 
-http://search.cpan.org/~nkh/ offers a Pure Perl implementation of a
-spreadsheet engine. Users that want this format to be supported in
-Spreadsheet::Read are hereby motivated to offer patches. It's not high
-on my todo-list.
+http://search.cpan.org/dist/Spreadsheet-Perl
+offers a Pure Perl implementation of a spreadsheet engine. Users that want
+this format to be supported in Spreadsheet::Read are hereby motivated to
+offer patches. It's not high on my todo-list.
 
 =item xls2csv
 
-http://search.cpan.org/~ken/ offers an alternative for my C<xlscat -c>,
+http://search.cpan.org/dist/xls2csv offers an alternative for my C<xlscat -c>,
 in the xls2csv tool, but this tool focusses on character encoding
 transparency, and requires some other modules.
 
