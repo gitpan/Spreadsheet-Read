@@ -24,6 +24,7 @@ my %wm = (
     PREREQ_PM    => {
 	# Core modules
 	"Exporter"			=> 0.00,
+	"Carp"				=> 0.00,
 	"Data::Dumper"			=> 0.00,
 	"File::Temp"			=> 0.14,
 	"IO::Scalar"			=> 0.00,	# Optional
@@ -34,6 +35,7 @@ my %wm = (
 	"Text::CSV_PP"			=> 1.05,	# 1.08 or up preferred
 	"Spreadsheet::ReadSXC"		=> 0.20,
 	"Spreadsheet::ParseExcel"	=> 0.26,
+	"Spreadsheet::ParseExcel::FmtDefault" => 0,
 #	"Spreadsheet::Perl"		=> 0.00,	# Not yet
 
 	# For testing
@@ -87,7 +89,8 @@ sub postamble
 	'',
 	'tgzdist:	checkmeta fixmeta $(DISTVNAME).tar.gz distcheck',
 	'	-@mv -f $(DISTVNAME).tar.gz $(DISTVNAME).tgz',
-	'	-@cpants_lint.pl $(DISTVNAME).tgz';
+	'	-@cpants_lint.pl $(DISTVNAME).tgz',
+	'	-@rm -f Debian_CPANTS.txt';
     } # postamble
 
 1;
