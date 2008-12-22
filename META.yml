@@ -1,16 +1,16 @@
 --- #YAML:1.1
 name:                   Read
-version:                0.29
+version:                0.30
 abstract:               Meta-Wrapper for reading spreadsheet data
 license:                perl
 author:                 
-  - H.Merijn Brand <h.merijn@xs4all.nl>
+  - H.Merijn Brand <h.m.brand@xs4all.nl>
 generated_by:           Author
 distribution_type:      module
 provides:
   Spreadsheet::Read:
     file:               Read.pm
-    version:            0.29
+    version:            0.30
 requires:                       
   perl:                 5.006
   Exporter:             0
@@ -31,14 +31,14 @@ optional_features:
     recommends:
       Text::CSV:        1
       Text::CSV_PP:     1.05
-      Text::CSV_XS:     0.56
+      Text::CSV_XS:     0.57
 - opt_excel:
     description:        Provides parsing of Microsoft Excel files
     requires:
       Spreadsheet::ParseExcel: 0.26
       Spreadsheet::ParseExcel::FmtDefault: 0
     recommends:
-      Spreadsheet::ParseExcel: 0.34
+      Spreadsheet::ParseExcel: 0.41
 - opt_oo:
     description:        Provides parsing of OpenOffice spreadsheets
     requires:

@@ -1,6 +1,11 @@
 Revision history for Spreadsheet::Read
 
-0.29	Tue 21 Oct 2008
+0.30	Mon 22 Dec 2008
+
+    - Wrong e-mail in META.yml
+    - CSV files from a Mac, with \r as eol, would not parse
+
+0.29	Sun 19 Oct 2008
 
     - Make Read safer for files that do not match extension,
       like HTML in foo.xls
