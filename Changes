@@ -1,5 +1,11 @@
 Revision history for Spreadsheet::Read
 
+0.31	Sun 04 Jan 2009
+
+    - Upped Copyright notices to 2009
+    - Detection of percentage type
+    - Even more reliable detection of Date types
+
 0.30	Mon 22 Dec 2008
 
     - Wrong e-mail in META.yml

@@ -21,7 +21,7 @@ package Spreadsheet::Read;
 use strict;
 use warnings;
 
-our $VERSION = "0.30";
+our $VERSION = "0.31";
 sub  Version { $VERSION }
 
 use Carp;
@@ -358,12 +358,22 @@ sub ReadData ($;@)
 			my $fmt = $FmT->{FmtIdx}
 			   ? $oBook->{FormatStr}{$FmT->{FmtIdx}}
 			   : undef;
-			if (defined $fmt) {
+			if ($oWkC->{Type} eq "Numeric") {
 			    # Fixed in 0.33 and up
-			    $oWkC->{Type} eq "Numeric" && $fmt =~ m{^[dmy][-\\/dmy]*$} and
+			    # see Spreadsheet/ParseExcel/FmtDefault.pm
+			    $FmT->{FmtIdx} == 0x0e ||
+			    $FmT->{FmtIdx} == 0x0f ||
+			    $FmT->{FmtIdx} == 0x10 ||
+			    $FmT->{FmtIdx} == 0x11 ||
+			    $FmT->{FmtIdx} == 0x16 ||
+			    (defined $fmt && $fmt =~ m{^[dmy][-\\/dmy]*$}) and
 				$oWkC->{Type} = "Date";
-			    $fmt =~ s/\\//g;
+			    $FmT->{FmtIdx} == 0x09 ||
+			    $FmT->{FmtIdx} == 0x0a ||
+			    (defined $fmt && $fmt =~ m{^0+\.0+%$}) and
+				$oWkC->{Type} = "Percentage";
 			    }
+			defined $fmt and $fmt =~ s/\\//g;
 			$opt{cells} and	# Formatted value
 			    $sheet{$cell} = exists $def_fmt{$FmT->{FmtIdx}}
 				? $oFmt->ValFmt ($oWkC, $oBook)
@@ -876,7 +886,7 @@ H.Merijn Brand, <h.m.brand@xs4all.nl>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2005-2008 H.Merijn Brand
+Copyright (C) 2005-2009 H.Merijn Brand
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself. 
