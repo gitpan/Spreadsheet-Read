@@ -6,7 +6,8 @@ use warnings;
 use Test::More;
 
 use Spreadsheet::Read;
-if (my $parser = Spreadsheet::Read::parses ("xls")) {
+my $parser;
+if ($parser = Spreadsheet::Read::parses ("xls")) {
     print STDERR "# Parser: $parser-", $parser->VERSION, "\n";
     plan tests => 217;
     }
@@ -26,6 +27,7 @@ my $content;
     open my $xls, "<", "files/test.xls" or die "files/test.xls: $!";
     binmode $xls;
     $content = <$xls>;
+    close   $xls;
     }
 
 my $xls;
@@ -98,11 +100,12 @@ foreach my $cell (qw( A18 B1 B6 B20 C26 D14 )) {
     }
 
 eval {
-    eval "use Spreadsheet::ParseExcel::FmtDefault";
+    eval "use ".$parser."::FmtDefault";
     my ($pm) = map { $INC{$_} } grep m{FmtDefault.pm$}i => keys %INC;
-    if (open PM, "<", $pm) {
+    if (open my $ph, "<", $pm) {
 	my $l;
-	$l = <PM> for 1 .. 68;
+	$l = <$ph> for 1 .. 68;
+	close $ph;
 	if ($l =~ m/'C\*'/) {
 	    print STDERR "\n",
 			 "# If the next tests give warnings like\n",
@@ -112,11 +115,10 @@ eval {
 			 "# patch -p0 <SPE68.diff\n";
 	    my @patch = <DATA>;
 	    s/\bPM\b/$pm/ for @patch;
-	    open  PATCH, ">", "SPE68.diff" or die "SPE68.diff: $!\n";
-	    print PATCH @patch;
-	    close PATCH;
+	    open  $ph, ">", "SPE68.diff" or die "SPE68.diff: $!\n";
+	    print $ph @patch;
+	    close $ph;
 	    }
-	close PM;
 	}
     };
 
