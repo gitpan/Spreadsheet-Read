@@ -3,20 +3,17 @@
 use strict;
 use warnings;
 
-use Test::More;
+my     $tests = 256;
+use     Test::More;
+require Test::NoWarnings;
 
 use Spreadsheet::Read;
-if (Spreadsheet::Read::parses ("ods")) {
-    if ((my $v = $Spreadsheet::ReadSXC::VERSION) <= 0.20) {
-	plan skip_all => "Spreadsheet::ReadSXC version $v doesn't support field attributes";
-	}
-    else {
-	plan tests => 256;
-	}
-    }
-else {
+my $parser = Spreadsheet::Read::parses ("ods") or
     plan skip_all => "No OpenOffice ODS parser found";
-    }
+
+$parser->VERSION <= 0.20 and
+    plan skip_all => "Spreadsheet::ReadSXC version " . $parser->VERSION .
+		    " doesn't support field attributes";
 
 my $ods;
 ok ($ods = ReadData ("files/attr.ods", attr => 1), "Excel Attributes testcase");
@@ -48,3 +45,9 @@ foreach my $col (1 .. $#clr) {
 	is ($clr->{attr}[$col][$row]{bgcolor}, $bg,	"BG ($col, $row)");
 	}
     }
+
+unless ($ENV{AUTOMATED_TESTING}) {
+    Test::NoWarnings::had_no_warnings ();
+    $tests++;
+    }
+done_testing ($tests);

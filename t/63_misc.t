@@ -3,15 +3,13 @@
 use strict;
 use warnings;
 
-use Test::More;
+my     $tests = 2;
+use     Test::More;
+require Test::NoWarnings;
 
-use Spreadsheet::Read;
-if (Spreadsheet::Read::parses ("xlsx")) {
-    plan "no_plan";
-    }
-else {
+use     Spreadsheet::Read;
+Spreadsheet::Read::parses ("xlsx") or
     plan skip_all => "No M\$-Excel parser found";
-    }
 
 my $xls;
 
@@ -28,3 +26,9 @@ my $xls;
     }
 ok ($xls,					"Open with options");
 is ($xls->[0]{sheets}, 3,			"Sheet Count");
+
+unless ($ENV{AUTOMATED_TESTING}) {
+    Test::NoWarnings::had_no_warnings ();
+    $tests++;
+    }
+done_testing ($tests);

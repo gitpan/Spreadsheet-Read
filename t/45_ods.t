@@ -3,15 +3,13 @@
 use strict;
 use warnings;
 
-use Test::More;
+my     $tests = 301;
+use     Test::More;
+require Test::NoWarnings;
 
-use Spreadsheet::Read;
-if (Spreadsheet::Read::parses ("ods")) {
-    plan tests => 301;
-    }
-else {
+use     Spreadsheet::Read;
+Spreadsheet::Read::parses ("ods") or
     plan skip_all => "No SXC parser found";
-    }
 
 my $content;
 {   local $/;
@@ -113,3 +111,9 @@ foreach my $base ( [ "files/test.ods",		"Read/Parse ods file" ],
 	is ("@sheets", "@{['Sheet1','Second Sheet']}", "Sheet order");
 	}
     }
+
+unless ($ENV{AUTOMATED_TESTING}) {
+    Test::NoWarnings::had_no_warnings ();
+    $tests++;
+    }
+done_testing ($tests);

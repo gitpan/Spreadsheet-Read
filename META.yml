@@ -1,6 +1,6 @@
 --- #YAML:1.1
 name:                   Read
-version:                0.34
+version:                0.35
 abstract:               Meta-Wrapper for reading spreadsheet data
 license:                perl
 author:                 
@@ -10,7 +10,7 @@ distribution_type:      module
 provides:
   Spreadsheet::Read:
     file:               Read.pm
-    version:            0.34
+    version:            0.35
 requires:                       
   perl:                 5.006
   Exporter:             0
@@ -20,12 +20,16 @@ recommends:
   perl:                 5.008005
   File::Temp:           0.14
   IO::Scalar:           0
+configure_requires:
+  ExtUtils::MakeMaker:  0
 build_requires:
   perl:                 5.006
   Test::Harness:        0
-  Test::More:           0
+  Test::More:           0.88
+  Test::NoWarnings:     0
 resources:
   license:              http://dev.perl.org/licenses/
+  repository:           http://repo.or.cz/w/Spreadsheet-Read.git
 meta-spec:
   version:              1.4
   url:                  http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -33,11 +37,11 @@ optional_features:
 - opt_csv:
     description:        Provides parsing of CSV streams
     requires:
-      Text::CSV_XS:                        0.23
+      Text::CSV_XS:                        0.43
     recommends:
-      Text::CSV:                           1.10
-      Text::CSV_PP:                        1.10
-      Text::CSV_XS:                        0.60
+      Text::CSV:                           1.12
+      Text::CSV_PP:                        1.20
+      Text::CSV_XS:                        0.65
 - opt_excel:
     description:        Provides parsing of Microsoft Excel files
     requires:
@@ -48,7 +52,7 @@ optional_features:
 - opt_excelx:
     description:        Provides parsing of Microsoft Excel 2007 files
     requires:
-      Spreadsheet::XLSX:                   0.09
+      Spreadsheet::XLSX:                   0.1
       Spreadsheet::XLSX::Fmt2007:          0
 - opt_oo:
     description:        Provides parsing of OpenOffice spreadsheets

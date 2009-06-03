@@ -39,7 +39,8 @@ my %wm = (
 #	"Spreadsheet::Perl"		=> 0.00,	# Not yet
 
 	# For testing
-	"Test::More"			=> 0.00,
+	"Test::More"			=> 0.88,
+	"Test::NoWarnings"		=> 0.00,
 
 	# for ss2tk
 #	"Tk"				=> 804.027,

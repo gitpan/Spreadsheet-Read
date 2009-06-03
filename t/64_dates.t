@@ -3,27 +3,25 @@
 use strict;
 use warnings;
 
-use Test::More;
+my     $tests = 71;
+use     Test::More;
+require Test::NoWarnings;
+
+use     Spreadsheet::Read;
+Spreadsheet::Read::parses ("xlsx") or
+    plan skip_all => "No M\$-Excel parser found";
 
 BEGIN { delete @ENV{qw( LANG LC_ALL LC_DATE )}; }
-
-use Spreadsheet::Read;
-if (Spreadsheet::Read::parses ("xlsx")) {
-    plan tests => 69;
-    }
-else {
-    plan skip_all => "No M\$-Excel parser found";
-    }
 
 my $xls;
 ok ($xls = ReadData ("files/Dates.xlsx", attr => 1, dtfmt => "yyyy-mm-dd"), "Excel Date testcase");
 
 SKIP: {
-    $xls->[0]{version} <= 0.09 and
-	skip "$xls->[0]{parser} $xls->[0]{version} does not reliably support formats", 68;
+    ok (my $ss   = $xls->[1],	"sheet");
+    ok (my $attr = $ss->{attr},	"attr");
 
-    my $ss   = $xls->[1];
-    my $attr = $ss->{attr};
+    defined $attr->[2][1]{format} or
+	skip "$xls->[0]{parser} $xls->[0]{version} does not reliably support formats", 68;
 
     my @date = (undef, 39668, 39672,      39790,        39673);
     my @fmt  = (undef, undef, "yyyymmdd", "yyyy-mm-dd", "mm/dd/yyyy");
@@ -59,3 +57,9 @@ SKIP: {
     is ($ss->{E3},	"08 Dec 2008",	"Cell content E3");
     is ($ss->{E4},	"13 Aug 2008",	"Cell content E4");
     }
+
+unless ($ENV{AUTOMATED_TESTING}) {
+    Test::NoWarnings::had_no_warnings ();
+    $tests++;
+    }
+done_testing ($tests);
