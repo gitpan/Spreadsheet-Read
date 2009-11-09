@@ -14,6 +14,7 @@ package Spreadsheet::Read;
  my $ref = ReadData ("test.ods");
  my $ref = ReadData ("test.xls");
  my $ref = ReadData ("test.xlsx");
+ my $ref = ReadData ($fh, parser => "xls");
 
  my $a3 = $ref->[1]{A3}, "\n"; # content of field A3 of sheet 1
 
@@ -22,7 +23,7 @@ package Spreadsheet::Read;
 use strict;
 use warnings;
 
-our $VERSION = "0.35";
+our $VERSION = "0.36";
 sub  Version { $VERSION }
 
 use Carp;
@@ -77,20 +78,26 @@ my @def_attr = (
 
 # Helper functions
 
+sub _parser
+{
+    my $type = shift		or  return "";
+    $type = lc $type;
+    # Aliases and fullnames
+    $type eq "excel"		and return "xls";
+    $type eq "excel2007"	and return "xlsx";
+    $type eq "oo"		and return "sxc";
+    $type eq "ods"		and return "sxc";
+    $type eq "openoffice"	and return "sxc";
+    $type eq "perl"		and return "prl";
+    $type eq "squirelcalc"	and return "sc";
+    return exists $can{$type} ? $type : "";
+    } # _parser
+
 # Spreadsheet::Read::parses ("csv") or die "Cannot parse CSV"
 sub parses
 {
-    my $type = shift		or  return 0;
-    $type = lc $type;
-    # Aliases and fullnames
-    $type eq "excel"		and return $can{xls};
-    $type eq "oo"		and return $can{sxc};
-    $type eq "ods"		and return $can{sxc};
-    $type eq "openoffice"	and return $can{sxc};
-    $type eq "perl"		and return $can{prl};
-
-    # $can{$type} // 0;
-    exists $can{$type} ? $can{$type} : 0;
+    my $type = _parser (shift)	or  return 0;
+    return $can{$type};
     } # parses
 
 # cr2cell (4, 18) => "D18"
@@ -139,8 +146,24 @@ sub rows
 # columns in each sheet that contain no visible data
 sub _clipsheets
 {
-    my ($clip, $ref) = @_;
-    $clip or return $ref;
+    my ($opt, $ref) = @_;
+
+    if (my $s = $opt->{strip}) {
+	foreach my $sheet (1 .. $ref->[0]{sheets}) {
+	    my $ss = $ref->[$sheet];
+	    foreach my $row (1 .. $ss->{maxrow}) {
+		foreach my $col (1 .. $ss->{maxcol}) {
+		    defined $ss->{cell}[$col][$row] or next;
+		    $s & 2 && $ss->{cell}[$col][$row] =~ s/\s+$// and
+			$ss->{cr2cell ($col, $row)}   =~ s/\s+$//;
+		    $s & 1 && $ss->{cell}[$col][$row] =~ s/^\s+// and
+			$ss->{cr2cell ($col, $row)}   =~ s/^\s+//;
+		    }
+		}
+	    }
+	}
+
+    $opt->{clip} or return $ref;
 
     foreach my $sheet (1 .. $ref->[0]{sheets}) {
 	my $ss = $ref->[$sheet];
@@ -184,9 +207,6 @@ sub _xls_color {
 sub ReadData
 {
     my $txt = shift	or  return;
-    ref $txt		and return; # TODO: support IO stream (ref $txt eq "IO")
-
-    my $tmpfile;
 
     my %opt;
     if (@_) {
@@ -197,20 +217,24 @@ sub ReadData
     defined $opt{cells}	or $opt{cells}	= 1;
     defined $opt{attr}	or $opt{attr}	= 0;
     defined $opt{clip}	or $opt{clip}	= $opt{cell};
+    defined $opt{strip}	or $opt{strip}	= 0;
     defined $opt{dtfmt} or $opt{dtfmt}	= "yyyy-mm-dd"; # Format 14
 
     # $debug = $opt{debug} // 0;
     $debug = defined $opt{debug} ? $opt{debug} : 0;
     $debug > 4 and print STDERR Data::Dumper->Dump ([\%opt],["Options"]);
 
-    # CSV not supported from streams
-    if ($txt =~ m/\.(csv)$/i and -f $txt) {
+    my $io_ref = ref ($txt) =~ m/GLOB|IO/ ? 1 : 0;
+
+    if ($opt{parser} ? _parser ($opt{parser}) eq "csv"
+		     : ($txt =~ m/\.(csv)$/i && -f $txt)) {
 	$can{csv} or croak "CSV parser not installed";
 
-	$debug and print STDERR "Opening CSV $txt\n";
-	open my $in, "<", $txt or return;
+	my $csv_is_file = $io_ref ? 0 : $txt =~ m/.csv$/ && -f $txt ? 1 : 0;
+	my $label = $csv_is_file ? $txt : "IO";
 
-	local $/ = $/;
+	$debug and print STDERR "Opening CSV $label\n";
+
 	my $csv;
 	my @data = (
 	    {	type	=> "csv",
@@ -219,9 +243,9 @@ sub ReadData
 		quote   => '"',
 		sepchar => ',',
 		sheets	=> 1,
-		sheet	=> { $txt => 1 },
+		sheet	=> { $label => 1 },
 		},
-	    {	label	=> $txt,
+	    {	label	=> $label,
 		maxrow	=> 0,
 		maxcol	=> 0,
 		cell	=> [],
@@ -229,83 +253,84 @@ sub ReadData
 		},
 	    );
 
-	$_ = <$in>;
-	if (eof ($in)) {
-	    # This file is either just one single line, or uses \r as eol
-	    close $in;
-	    open  $in, "<", $txt or return;
-	    $/ = "\r";
-	    $_ = <$in>;
-	    }
+	my ($sep, $quo, $in) = (",", '"');
+	defined $opt{sep}   and $sep = $opt{sep};
+	defined $opt{quote} and $quo = $opt{quote};
+	if ($csv_is_file) {
+	    unless (defined $opt{quote} && defined $opt{sep}) {
+		local $/ = $/;
+		open $in, "<", $txt or return;
+		$_ = <$in>;
 
-	my $quo = defined $opt{quote} ? $opt{quote} : '"';
-	my $sep = # If explicitly set, use it
-	   defined $opt{sep} ? $opt{sep} :
-	       # otherwise start auto-detect with quoted strings
-	       m/["0-9];["0-9;]/	? ";"  :
-	       m/["0-9],["0-9,]/	? ","  :
-	       m/["0-9]\t["0-9,]/	? "\t" :
-	       # If neither, then for unquoted strings
-	       m/\w;[\w;]/		? ";"  :
-	       m/\w,[\w,]/		? ","  :
-	       m/\w\t[\w,]/		? "\t" :
-					  ","  ;
+		$quo = defined $opt{quote} ? $opt{quote} : '"';
+		$sep = # If explicitly set, use it
+		   defined $opt{sep} ? $opt{sep} :
+		       # otherwise start auto-detect with quoted strings
+		       m/["0-9];["0-9;]/	? ";"  :
+		       m/["0-9],["0-9,]/	? ","  :
+		       m/["0-9]\t["0-9,]/	? "\t" :
+		       # If neither, then for unquoted strings
+		       m/\w;[\w;]/		? ";"  :
+		       m/\w,[\w,]/		? ","  :
+		       m/\w\t[\w,]/		? "\t" :
+					      ","  ;
+		close $in;
+		}
+	    open $in, "<", $txt or return;
+	    }
+	else {
+	    $in = $txt;	# Now pray ...
+	    }
 	$debug > 1 and print STDERR "CSV sep_char '$sep', quote_char '$quo'\n";
 	$csv = $can{csv}->new ({
 	    sep_char       => ($data[0]{sepchar} = $sep),
 	    quote_char     => ($data[0]{quote}   = $quo),
-	    keep_meta_info => 1,	# Ignored for Text::CSV_XS <= 0.27
+	    keep_meta_info => 1,
 	    binary         => 1,
-	    eol            => $/,
 	    }) or croak "Cannot create a csv ('$sep', '$quo') parser!";
 
-	# while ($row = $csv->getline () {
-	# doesn't work, because I have to fetch the first line for auto
-	# detecting sep and quote
-	$csv->parse ($_);
-	my $row = [ $csv->fields ];
-	do {
-	    if (my @row = @$row) {
-		my $r = ++$data[1]{maxrow};
-		@row > $data[1]{maxcol} and $data[1]{maxcol} = @row;
-		foreach my $c (0 .. $#row) {
-		    my $val = $row[$c];
-		    my $cell = cr2cell ($c + 1, $r);
-		    $opt{rc}    and $data[1]{cell}[$c + 1][$r] = $val;
-		    $opt{cells} and $data[1]{$cell} = $val;
-		    $opt{attr}  and $data[1]{attr}[$c + 1][$r] = { @def_attr };
-		    }
+	while (my $row = $csv->getline ($in)) {
+	    my @row = @$row or last;
+
+	    my $r = ++$data[1]{maxrow};
+	    @row > $data[1]{maxcol} and $data[1]{maxcol} = @row;
+	    foreach my $c (0 .. $#row) {
+		my $val = $row[$c];
+		my $cell = cr2cell ($c + 1, $r);
+		$opt{rc}    and $data[1]{cell}[$c + 1][$r] = $val;
+		$opt{cells} and $data[1]{$cell} = $val;
+		$opt{attr}  and $data[1]{attr}[$c + 1][$r] = { @def_attr };
 		}
-	    else {
-		$csv = undef;
-		}
-	    } while ($csv && ($row = $csv->getline ($in)));
+	    }
 	$csv->eof () or $csv->error_diag;
 	close $in;
 
 	for (@{$data[1]{cell}}) {
 	    defined $_ or $_ = [];
 	    }
-	return _clipsheets $opt{clip}, [ @data ];
+	return _clipsheets \%opt, [ @data ];
 	}
 
     # From /etc/magic: Microsoft Office Document
     my $xls_from_txt;
-    if ($txt =~ m/^(\376\067\0\043
+    if (!$io_ref and (
+        _parser ($opt{parser}) =~ m{^xlsx?} && -f $txt or
+	$txt =~ m/^(\376\067\0\043
 		   |\320\317\021\340\241\261\032\341
-		   |\333\245-\0\0\0)/x) {
+		   |\333\245-\0\0\0)/x)) {
 	$can{xls} or croak "Spreadsheet::ParseExcel not installed";
 	if ($can{ios}) { # Do not use a temp file if IO::Scalar is available
 	    $xls_from_txt = \$txt;
 	    }
 	else {
-	    $tmpfile = File::Temp->new (SUFFIX => ".xls", UNLINK => 1);
+	    my $tmpfile = File::Temp->new (SUFFIX => ".xls", UNLINK => 1);
 	    binmode $tmpfile;
 	    print   $tmpfile $txt;
 	    $txt = "$tmpfile";
 	    }
 	}
-    if ($xls_from_txt or $txt =~ m/\.(xlsx?)$/i && -f $txt) {
+    if ($opt{parser} ? _parser ($opt{parser}) =~ m/^xlsx?$/
+		     : ($xls_from_txt or $txt =~ m/\.(xlsx?)$/i && -f $txt)) {
 	my $parse_type = $txt =~ m/\.xlsx$/i ? "XLSX" : "XLS";
 	$can{lc $parse_type} or croak "Parser for $parse_type is not installed";
 	my $oBook;
@@ -455,17 +480,23 @@ sub ReadData
 		$data[0]{sheet}{$sheet{label}} = $#data;
 		}
 	    }
-	return _clipsheets $opt{clip}, [ @data ];
+	return _clipsheets \%opt, [ @data ];
 	}
 
-    if ($txt =~ m/^# .*SquirrelCalc/ or $txt =~ m/\.sc$/ && -f $txt) {
-	if ($txt !~ m/\n/ && -f $txt) {
+    if ($opt{parser} ? _parser ($opt{parser}) eq "sc"
+		     : ($txt =~ m/^# .*SquirrelCalc/ or $txt =~ m/\.sc$/ && -f $txt)) {
+	if ($io_ref) {
+	    local $/;
+	    my $x = <$txt>;
+	    $txt = $x;
+	    }
+	elsif ($txt !~ m/\n/ && -f $txt) {
 	    local $/;
 	    open my $sc, "<", $txt or return;
 	    $txt = <$sc>;
 	    close   $sc;
-	    $txt =~ m/\S/ or return;
 	    }
+	$txt =~ m/\S/ or return;
 	my @data = (
 	    {	type	=> "sc",
 		parser	=> "Spreadsheet::Read",
@@ -501,10 +532,11 @@ sub ReadData
 	for (@{$data[1]{cell}}) {
 	    defined $_ or $_ = [];
 	    }
-	return _clipsheets $opt{clip}, [ @data ];
+	return _clipsheets \%opt, [ @data ];
 	}
 
-    if ($txt =~ m/^<\?xml/ or -f $txt) {
+    if ($opt{parser} ? _parser ($opt{parser}) eq "sxc"
+		     : ($txt =~ m/^<\?xml/ or -f $txt)) {
 	$can{sxc} or croak "Spreadsheet::ReadSXC not installed";
 	my $sxc_options = { OrderBySheet => 1 }; # New interface 0.20 and up
 	my $sxc;
@@ -574,7 +606,7 @@ sub ReadData
 		$data[0]{sheets}++;
 		$data[0]{sheet}{$sheet->{label}} = $#data;
 		}
-	    return _clipsheets $opt{clip}, [ @data ];
+	    return _clipsheets \%opt, [ @data ];
 	    }
 	}
 
@@ -662,18 +694,28 @@ the sheets when accessing them by name:
 
 =item my $ref = ReadData ($content);
 
+=item my $ref = ReadData ($fh, parser => "xls");
+
 Tries to convert the given file, string, or stream to the data
 structure described above.
 
-Precessing data from a stream or content is supported for Excel
-(through a File::Temp temporary file or IO::Scalar when available),
-or for XML (OpenOffice), but not for CSV.
+Processing Excel data from a stream or content is supported through
+a File::Temp temporary file or IO::Scalar when available.  
 
 ReadSXC does preserve sheet order as of version 0.20.
 
 Currently supported options are:
 
 =over 2
+
+=item parser
+
+Force the data to be parsed by a specific format. Possible values are
+C<csv>, C<prl> (or C<perl>), C<sc> (or C<squirelcalc>), C<sxc> (or C<oo>,
+C<ods>, C<openoffice>) C<xls> (or C<excel>), and C<xlsx> (or C<excel2007>).
+
+When parsing streams, instead of files, it is highly recommended to pass
+this option.
 
 =item cells
 
@@ -686,6 +728,7 @@ Control the generation of the {cell}[c][r] entries. Default is true.
 =item attr
 
 Control the generation of the {attr}[c][r] entries. Default is false.
+See L<Cell Attributes> below.
 
 =item clip
 
@@ -693,6 +736,18 @@ If set, C<ReadData ()> will remove all trailing lines and columns per
 sheet that have no visual data.
 This option is only valid if C<cells> is true. The default value is
 true if C<cells> is true, and false otherwise.
+
+=item strip
+
+If set, C<ReadData ()> will remove trailing- and/or leading-whitespace
+from every field.
+
+  strip  leading  strailing
+  -----  -------  ---------
+    0      n/a      n/a
+    1     strip     n/a
+    2      n/a     strip
+    3     strip    strip
 
 =item sep
 
@@ -725,11 +780,21 @@ parser.
 
 =back
 
-In case of CSV parsing, C<ReadData ()> will use the first line to
-auto-detect the separation character, if not explicitly passed, and the
-end-of-line sequence. This means that if the first line does not contain
-embedded newlines, the rest of the CSV file can have them, and they will
-be parsed correctly.
+=back
+
+=head2 Using CSV
+
+In case of CSV parsing, C<ReadData ()> will use the first line of the file
+to auto-detect the separation character if the first argument is a file and
+both C<sep> and C<quote> are not passed as attributes. Text::CSV_XS (or
+Text::CSV_PP) is able to automatically detect and use C<\r> line endings).
+
+CSV can parse streams too, but be sure to pass C<sep> and/or C<quote> if
+these do not match the default C<,> and C<">.
+
+=head2 Functions
+
+=over 4
 
 =item my $cell = cr2cell (col, row)
 
@@ -780,63 +845,65 @@ use argument list, or call it fully qualified.
 
 =back
 
+=head2 Cell Attributes
+
+If the constructor was called with C<attr> having a true value, effort
+is made to analyse and store field attributes like this:
+
+    { label  => "Sheet 1",
+      maxrow => 2,
+      maxcol => 4,
+      cell   => [ undef,
+	[ undef, 1 ],
+	[ undef, undef, undef, undef, undef, "Nugget" ],
+	],
+      attr   => [ undef,
+	[ undef, {
+	  type    => "numeric",
+	  fgcolor => "#ff0000",
+	  bgcolor => undef,
+	  font    => "Arial",
+	  size    => undef,
+	  format  => "## ##0.00",
+	  halign  => "right",
+	  valign  => "top",
+	  uline   => 0,
+	  bold    => 0,
+	  italic  => 0,
+	  wrap    => 0,
+	  merged  => 0,
+	  hidden  => 0,
+	  locked  => 0,
+	  enc     => "utf-8",
+	  }, ]
+	[ undef, undef, undef, undef, undef, {
+	  type    => "text",
+	  fgcolor => "#e2e2e2",
+	  bgcolor => undef,
+	  font    => "Letter Gothic",
+	  size    => 15,
+	  format  => undef,
+	  halign  => "left",
+	  valign  => "top",
+	  uline   => 0,
+	  bold    => 0,
+	  italic  => 0,
+	  wrap    => 0,
+	  merged  => 0,
+	  hidden  => 0,
+	  locked  => 0,
+	  enc     => "iso8859-1",
+	  }, ]
+      A1     => 1,
+      B5     => "Nugget",
+      },
+
+This has now been partially implemented, mainly for Excel, as the other
+parsers do not (yet) support all of that. YMMV.
+
 =head1 TODO
 
 =over 4
-
-=item Cell attributes
-
-Future plans include cell attributes, available as for example:
-
-        { label  => "Sheet 1",
-          maxrow => 2,
-          maxcol => 4,
-          cell   => [ undef,
-            [ undef, 1 ],
-            [ undef, undef, undef, undef, undef, "Nugget" ],
-            ],
-          attr   => [ undef,
-            [ undef, {
-              type    => "numeric",
-              fgcolor => "#ff0000",
-              bgcolor => undef,
-              font    => "Arial",
-              size    => undef,
-              format  => "## ##0.00",
-              halign  => "right",
-              valign  => "top",
-              uline   => 0,
-              bold    => 0,
-              italic  => 0,
-              wrap    => 0,
-              merged  => 0,
-              hidden  => 0,
-              locked  => 0,
-              enc     => "utf-8",
-              }, ]
-            [ undef, undef, undef, undef, undef, {
-              type    => "text",
- 	      fgcolor => "#e2e2e2",
-              bgcolor => undef,
-              font    => "Letter Gothic",
-              size    => 15,
-              format  => undef,
-              halign  => "left",
-              valign  => "top",
-              uline   => 0,
-              bold    => 0,
-              italic  => 0,
-              wrap    => 0,
-              merged  => 0,
-              hidden  => 0,
-              locked  => 0,
- 	      enc     => "iso8859-1",
- 	      }, ]
- 	  A1     => 1,
- 	  B5     => "Nugget",
- 	  },
-
-This has now been partially implemented. Excel only.
 
 =item Options
 
