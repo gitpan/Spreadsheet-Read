@@ -23,7 +23,7 @@ package Spreadsheet::Read;
 use strict;
 use warnings;
 
-our $VERSION = "0.38";
+our $VERSION = "0.39";
 sub  Version { $VERSION }
 
 use Carp;
@@ -904,8 +904,8 @@ If the constructor was called with C<attr> having a true value, effort
 is made to analyse and store field attributes like this:
 
     { label  => "Sheet 1",
-      maxrow => 2,
-      maxcol => 4,
+      maxrow => 5,
+      maxcol => 2,
       cell   => [ undef,
 	[ undef, 1 ],
 	[ undef, undef, undef, undef, undef, "Nugget" ],
@@ -1045,7 +1045,7 @@ H.Merijn Brand, <h.m.brand@xs4all.nl>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2005-2009 H.Merijn Brand
+Copyright (C) 2005-2010 H.Merijn Brand
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

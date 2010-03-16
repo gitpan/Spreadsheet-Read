@@ -1,6 +1,6 @@
---- #YAML:1.1
+--- #YAML:1.0
 name:                   Read
-version:                0.38
+version:                0.39
 abstract:               Meta-Wrapper for reading spreadsheet data
 license:                perl
 author:                 
@@ -10,16 +10,12 @@ distribution_type:      module
 provides:
   Spreadsheet::Read:
     file:               Read.pm
-    version:            0.38
+    version:            0.39
 requires:                       
   perl:                 5.006
   Exporter:             0
   Carp:                 0
   Data::Dumper:         0
-recommends:
-  perl:                 5.010001
-  File::Temp:           0.22
-  IO::Scalar:           0
 configure_requires:
   ExtUtils::MakeMaker:  0
 build_requires:
@@ -27,6 +23,11 @@ build_requires:
   Test::Harness:        0
   Test::More:           0.88
   Test::NoWarnings:     0
+recommends:
+  perl:                 5.010001
+  File::Temp:           0.22
+  IO::Scalar:           0
+  Test::More:           0.94
 resources:
   license:              http://dev.perl.org/licenses/
   repository:           http://repo.or.cz/w/Spreadsheet-Read.git
@@ -41,14 +42,14 @@ optional_features:
     recommends:
       Text::CSV:                           1.16
       Text::CSV_PP:                        1.24
-      Text::CSV_XS:                        0.70
+      Text::CSV_XS:                        0.72
   opt_excel:
     description:        Provides parsing of Microsoft Excel files
     requires:
       Spreadsheet::ParseExcel:             0.26
       Spreadsheet::ParseExcel::FmtDefault: 0
     recommends:
-      Spreadsheet::ParseExcel:             0.56
+      Spreadsheet::ParseExcel:             0.57
   opt_excelx:
     description:        Provides parsing of Microsoft Excel 2007 files
     requires:
@@ -57,7 +58,7 @@ optional_features:
   opt_oo:
     description:        Provides parsing of OpenOffice spreadsheets
     requires:
-      Spreadsheet::ReadSXC:                0.2
+      Spreadsheet::ReadSXC:                0.20
   opt_tools:
     description:        Spreadsheet tools
     recommends:
