@@ -1,5 +1,11 @@
 Revision history for Spreadsheet::Read
 
+0.42	Wed 01 Jun 2011
+
+    - Add --html output option to xlscat
+    - Force CSV parser when in-sep is given
+    - Prefer Data::Peek over Data::Dumper if available
+
 0.41	Wed 06 Oct 2010
 
     - Spell-check
