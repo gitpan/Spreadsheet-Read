@@ -1,0 +1,53 @@
+{
+   "abstract" : "Read the data from a spreadsheet",
+   "author" : [
+      "H.Merijn Brand <h.merijn@procura.nl>"
+      ],
+   "dynamic_config" : 1,
+   "generated_by" : "ExtUtils::MakeMaker version 6.58, CPAN::Meta::Converter version 2.110930",
+   "license" : [
+      "perl_5"
+      ],
+   "meta-spec" : {
+      "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
+      "version" : "2"
+      },
+   "name" : "Spreadsheet-Read",
+   "no_index" : {
+      "directory" : [
+         "t",
+         "inc"
+         ]
+      },
+   "prereqs" : {
+      "build" : {
+         "requires" : {
+            "ExtUtils::MakeMaker" : 0
+            }
+         },
+      "configure" : {
+         "requires" : {
+            "ExtUtils::MakeMaker" : 0
+            }
+         },
+      "runtime" : {
+         "requires" : {
+            "Carp" : 0,
+            "Data::Dumper" : 0,
+            "Exporter" : 0,
+            "File::Temp" : "0.22",
+            "IO::Scalar" : 0,
+            "Spreadsheet::ParseExcel" : "0.26",
+            "Spreadsheet::ParseExcel::FmtDefault" : 0,
+            "Spreadsheet::ReadSXC" : "0.2",
+            "Test::More" : "0.88",
+            "Test::NoWarnings" : 0,
+            "Text::CSV" : "1.15",
+            "Text::CSV_PP" : "1.23",
+            "Text::CSV_XS" : "0.69"
+            }
+         }
+      },
+   "release_status" : "stable",
+   "version" : "0.43"
+   }

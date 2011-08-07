@@ -23,7 +23,7 @@ package Spreadsheet::Read;
 use strict;
 use warnings;
 
-our $VERSION = "0.42";
+our $VERSION = "0.43";
 sub  Version { $VERSION }
 
 use Carp;
@@ -367,7 +367,7 @@ sub ReadData
 	$debug and print STDERR "Opening $parse_type \$txt\n";
 	if ($io_ref) {
 	    $oBook = $parse_type eq "XLSX"
-		? Spreadsheet::XLSX::Workbook->Parse ($io_ref)
+		? Spreadsheet::XLSX->new ($io_ref)
 		: Spreadsheet::ParseExcel::Workbook->Parse ($io_ref);
 	    }
 	else {

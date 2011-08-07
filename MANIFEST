@@ -68,4 +68,5 @@ t/62_fmt.t
 t/63_misc.t
 t/64_dates.t
 t/65_perc.t
-META.yml                                 Module meta-data (added by MakeMaker)
+META.yml                                 Module YAML meta-data (added by MakeMaker)
+META.json                                Module JSON meta-data (added by MakeMaker)
