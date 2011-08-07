@@ -1,53 +1,89 @@
 {
-   "abstract" : "Read the data from a spreadsheet",
-   "author" : [
-      "H.Merijn Brand <h.merijn@procura.nl>"
-      ],
-   "dynamic_config" : 1,
-   "generated_by" : "ExtUtils::MakeMaker version 6.58, CPAN::Meta::Converter version 2.110930",
-   "license" : [
-      "perl_5"
-      ],
+   "resources" : {
+      "repository" : "http://repo.or.cz/w/Spreadsheet-Read.git",
+      "license" : "http://dev.perl.org/licenses/"
+      },
    "meta-spec" : {
-      "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
-      "version" : "2"
+      "version" : "1.4",
+      "url" : "http://module-build.sourceforge.net/META-spec-v1.4.html"
       },
-   "name" : "Spreadsheet-Read",
-   "no_index" : {
-      "directory" : [
-         "t",
-         "inc"
-         ]
+   "test_requires" : {
+      "Test::More" : "0.88",
+      "Test::Harness" : "0",
+      "Test::NoWarnings" : "0"
       },
-   "prereqs" : {
-      "build" : {
-         "requires" : {
-            "ExtUtils::MakeMaker" : 0
-            }
-         },
-      "configure" : {
-         "requires" : {
-            "ExtUtils::MakeMaker" : 0
-            }
-         },
-      "runtime" : {
-         "requires" : {
-            "Carp" : 0,
-            "Data::Dumper" : 0,
-            "Exporter" : 0,
-            "File::Temp" : "0.22",
-            "IO::Scalar" : 0,
-            "Spreadsheet::ParseExcel" : "0.26",
-            "Spreadsheet::ParseExcel::FmtDefault" : 0,
-            "Spreadsheet::ReadSXC" : "0.2",
-            "Test::More" : "0.88",
-            "Test::NoWarnings" : 0,
-            "Text::CSV" : "1.15",
-            "Text::CSV_PP" : "1.23",
-            "Text::CSV_XS" : "0.69"
-            }
+   "distribution_type" : "module",
+   "generated_by" : "Author",
+   "version" : "0.43",
+   "name" : "Spreadsheet::Read",
+   "author" : [
+      "H.Merijn Brand <h.m.brand@xs4all.nl>"
+      ],
+   "license" : "perl",
+   "provides" : {
+      "Spreadsheet::Read" : {
+         "version" : "0.43",
+         "file" : "Read.pm"
          }
       },
-   "release_status" : "stable",
-   "version" : "0.43"
+   "optional_features" : {
+      "opt_tools" : {
+         "recommends" : {
+            "Tk::TableMatrix::Spreadsheet" : "0",
+            "Tk::NoteBook" : "0",
+            "Tk" : "0"
+            },
+         "description" : "Spreadsheet tools"
+         },
+      "opt_excelx" : {
+         "requires" : {
+            "Spreadsheet::XLSX" : "0.13",
+            "Spreadsheet::XLSX::Fmt2007" : "0"
+            },
+         "description" : "Provides parsing of Microsoft Excel 2007 files"
+         },
+      "opt_csv" : {
+         "requires" : {
+            "Text::CSV_XS" : "0.69"
+            },
+         "recommends" : {
+            "Text::CSV_PP" : "1.29",
+            "Text::CSV_XS" : "0.83",
+            "Text::CSV" : "1.21"
+            },
+         "description" : "Provides parsing of CSV streams"
+         },
+      "opt_oo" : {
+         "requires" : {
+            "Spreadsheet::ReadSXC" : "0.20"
+            },
+         "description" : "Provides parsing of OpenOffice spreadsheets"
+         },
+      "opt_excel" : {
+         "requires" : {
+            "Spreadsheet::ParseExcel" : "0.26",
+            "Spreadsheet::ParseExcel::FmtDefault" : "0"
+            },
+         "recommends" : {
+            "Spreadsheet::ParseExcel" : "0.59"
+            },
+         "description" : "Provides parsing of Microsoft Excel files"
+         }
+      },
+   "requires" : {
+      "perl" : "5.006",
+      "Data::Dumper" : "0",
+      "Exporter" : "0",
+      "Carp" : "0"
+      },
+   "recommends" : {
+      "Test::More" : "0.98",
+      "perl" : "5.014001",
+      "IO::Scalar" : "0",
+      "File::Temp" : "0.22"
+      },
+   "abstract" : "Meta-Wrapper for reading spreadsheet data",
+   "configure_requires" : {
+      "ExtUtils::MakeMaker" : "0"
+      }
    }
