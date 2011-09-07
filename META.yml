@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                   Spreadsheet-Read
-version:                0.44
+version:                0.45
 abstract:               Meta-Wrapper for reading spreadsheet data
 license:                perl
 author:                 
@@ -10,7 +10,7 @@ distribution_type:      module
 provides:
   Spreadsheet::Read:
     file:               Read.pm
-    version:            0.44
+    version:            0.45
 requires:                       
   perl:                 5.006
   Exporter:             0

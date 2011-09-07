@@ -14,7 +14,7 @@
       },
    "distribution_type" : "module",
    "generated_by" : "Author",
-   "version" : "0.44",
+   "version" : "0.45",
    "name" : "Spreadsheet-Read",
    "author" : [
       "H.Merijn Brand <h.m.brand@xs4all.nl>"
@@ -22,7 +22,7 @@
    "license" : "perl",
    "provides" : {
       "Spreadsheet::Read" : {
-         "version" : "0.44",
+         "version" : "0.45",
          "file" : "Read.pm"
          }
       },
