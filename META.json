@@ -4,8 +4,8 @@
       "license" : "http://dev.perl.org/licenses/"
       },
    "meta-spec" : {
-      "version" : "1.4",
-      "url" : "http://module-build.sourceforge.net/META-spec-v1.4.html"
+      "version" : "2.0",
+      "url" : "https://metacpan.org/module/CPAN::Meta::Spec?#meta-spec"
       },
    "test_requires" : {
       "Test::More" : "0.88",
@@ -14,15 +14,15 @@
       },
    "distribution_type" : "module",
    "generated_by" : "Author",
-   "version" : "0.43",
-   "name" : "Spreadsheet::Read",
+   "version" : "0.44",
+   "name" : "Spreadsheet-Read",
    "author" : [
       "H.Merijn Brand <h.m.brand@xs4all.nl>"
       ],
    "license" : "perl",
    "provides" : {
       "Spreadsheet::Read" : {
-         "version" : "0.43",
+         "version" : "0.44",
          "file" : "Read.pm"
          }
       },
@@ -72,6 +72,7 @@
       },
    "requires" : {
       "perl" : "5.006",
+      "File::Temp" : "0.22",
       "Data::Dumper" : "0",
       "Exporter" : "0",
       "Carp" : "0"
@@ -79,8 +80,7 @@
    "recommends" : {
       "Test::More" : "0.98",
       "perl" : "5.014001",
-      "IO::Scalar" : "0",
-      "File::Temp" : "0.22"
+      "IO::Scalar" : "0"
       },
    "abstract" : "Meta-Wrapper for reading spreadsheet data",
    "configure_requires" : {
