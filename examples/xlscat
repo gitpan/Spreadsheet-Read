@@ -1,7 +1,7 @@
 #!/pro/bin/perl
 
 # xls2cat: show XLS/SXC file as Text
-#	  (m)'11 [03-02-2011] Copyright H.M.Brand 2005-2011
+#	  (m)'11 [03-02-2011] Copyright H.M.Brand 2005-2012
 
 use strict;
 use warnings;
@@ -250,7 +250,7 @@ if ($opt_H) {
 <head>
   <title>$file</title>
   <meta name="Author" content="xlscat $VERSION" />
-  <style type="text/css"><!--
+  <style type="text/css">
     body, h2,
     td, th { font-family:     "Nimbus Sans L", "DejaVu Sans",
                               Helvetica, Arial, sans; }
@@ -265,7 +265,7 @@ if ($opt_H) {
     table  > tr > td:not([class]) {
              background:      #f0f0f0;                }
     .odd   { background:      #e0e0e0;                }
-    --></style>
+    </style>
   </head>
 <body>
 EOH

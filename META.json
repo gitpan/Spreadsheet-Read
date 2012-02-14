@@ -14,7 +14,7 @@
       },
    "distribution_type" : "module",
    "generated_by" : "Author",
-   "version" : "0.45",
+   "version" : "0.46",
    "name" : "Spreadsheet-Read",
    "author" : [
       "H.Merijn Brand <h.m.brand@xs4all.nl>"
@@ -22,7 +22,7 @@
    "license" : "perl",
    "provides" : {
       "Spreadsheet::Read" : {
-         "version" : "0.45",
+         "version" : "0.46",
          "file" : "Read.pm"
          }
       },
@@ -48,7 +48,7 @@
             },
          "recommends" : {
             "Text::CSV_PP" : "1.29",
-            "Text::CSV_XS" : "0.83",
+            "Text::CSV_XS" : "0.86",
             "Text::CSV" : "1.21"
             },
          "description" : "Provides parsing of CSV streams"
@@ -79,7 +79,7 @@
       },
    "recommends" : {
       "Test::More" : "0.98",
-      "perl" : "5.014001",
+      "perl" : "5.014002",
       "IO::Scalar" : "0"
       },
    "abstract" : "Meta-Wrapper for reading spreadsheet data",
