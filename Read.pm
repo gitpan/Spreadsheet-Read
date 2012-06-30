@@ -23,7 +23,7 @@ package Spreadsheet::Read;
 use strict;
 use warnings;
 
-our $VERSION = "0.46";
+our $VERSION = "0.47";
 sub  Version { $VERSION }
 
 use Carp;
@@ -189,11 +189,12 @@ sub _clipsheets
 	    $ss->{maxrow} && $ss->{maxcol} or next;
 	    foreach my $row (1 .. $ss->{maxrow}) {
 		foreach my $col (1 .. $ss->{maxcol}) {
-		    defined $ss->{cell}[$col][$row] or next;
-		    $s & 2 && $ss->{cell}[$col][$row] =~ s/\s+$// and
-			$ss->{cr2cell ($col, $row)}   =~ s/\s+$//;
-		    $s & 1 && $ss->{cell}[$col][$row] =~ s/^\s+// and
-			$ss->{cr2cell ($col, $row)}   =~ s/^\s+//;
+		    for (($opt->{cells} ? $ss->{cell}[$col][$row] : ()),
+		         ($opt->{rc} ? $ss->{cr2cell ($col, $row)} : ())) {
+			defined or next;
+		        $s & 2 and s/\s+$//;
+			$s & 1 and s/^\s+//;
+			}
 		    }
 		}
 	    }
@@ -250,12 +251,12 @@ sub ReadData
 	elsif (@_ % 2 == 0)          { %opt = @_          }
 	}
 
-    defined $opt{rc}	or $opt{rc}	= $def_opts{rc};
-    defined $opt{cells}	or $opt{cells}	= $def_opts{cells};
-    defined $opt{attr}	or $opt{attr}	= $def_opts{attr};
-    defined $opt{clip}	or $opt{clip}	= $opt{cells};
-    defined $opt{strip}	or $opt{strip}	= $def_opts{strip};
-    defined $opt{dtfmt} or $opt{dtfmt}	= $def_opts{dtfmt};
+    exists $opt{rc}	or $opt{rc}	= $def_opts{rc};
+    exists $opt{cells}	or $opt{cells}	= $def_opts{cells};
+    exists $opt{attr}	or $opt{attr}	= $def_opts{attr};
+    exists $opt{clip}	or $opt{clip}	= $opt{cells};
+    exists $opt{strip}	or $opt{strip}	= $def_opts{strip};
+    exists $opt{dtfmt}	or $opt{dtfmt}	= $def_opts{dtfmt};
 
     # $debug = $opt{debug} // 0;
     $debug = defined $opt{debug} ? $opt{debug} : $def_opts{debug};
@@ -569,7 +570,7 @@ sub ReadData
 		}
 	    s/^r([0-9]+)c([0-9]+)\s*=\s*// or next;
 	    my ($c, $r) = map { $_ + 1 } $2, $1;
-	    if (m/.* {(.*)}$/ or m/"(.*)"/) {
+	    if (m/.* \{(.*)}$/ or m/"(.*)"/) {
 		my $cell = cr2cell ($c, $r);
 		$opt{rc}    and $data[1]{cell}[$c][$r] = $1;
 		$opt{cells} and $data[1]{$cell} = $1;
@@ -676,8 +677,7 @@ For OpenOffice this module uses Spreadsheet::ReadSXC
 For Microsoft Excel this module uses Spreadsheet::ParseExcel or
 Spreadsheet::XLSX
 
-For CSV this module uses Text::CSV_XS (0.29 or up required, 0.73 or
-up preferred) or Text::CSV_PP (1.05 or up required).
+For CSV this module uses Text::CSV_XS or Text::CSV_PP.
 
 For SquirrelCalc there is a very simplistic built-in parser
 
@@ -686,31 +686,31 @@ For SquirrelCalc there is a very simplistic built-in parser
 The data is returned as an array reference:
 
   $ref = [
- 	# Entry 0 is the overall control hash
- 	{ sheets  => 2,
-	  sheet   => {
-	    "Sheet 1"	=> 1,
-	    "Sheet 2"	=> 2,
-	    },
-	  type    => "xls",
-	  parser  => "Spreadsheet::ParseExcel",
-	  version => 0.26,
-	  },
- 	# Entry 1 is the first sheet
- 	{ label  => "Sheet 1",
- 	  maxrow => 2,
- 	  maxcol => 4,
- 	  cell   => [ undef,
-	    [ undef, 1 ],
-	    [ undef, undef, undef, undef, undef, "Nugget" ],
-	    ],
- 	  A1     => 1,
- 	  B5     => "Nugget",
- 	  },
- 	# Entry 2 is the second sheet
- 	{ label => "Sheet 2",
- 	  :
- 	:
+      # Entry 0 is the overall control hash
+      { sheets  => 2,
+        sheet   => {
+          "Sheet 1"  => 1,
+          "Sheet 2"  => 2,
+          },
+        type    => "xls",
+        parser  => "Spreadsheet::ParseExcel",
+        version => 0.26,
+        },
+      # Entry 1 is the first sheet
+      { label   => "Sheet 1",
+        maxrow  => 2,
+        maxcol  => 4,
+        cell    => [ undef,
+          [ undef, 1 ],
+          [ undef, undef, undef, undef, undef, "Nugget" ],
+          ],
+        A1      => 1,
+        B5      => "Nugget",
+        },
+      # Entry 2 is the second sheet
+      { label   => "Sheet 2",
+        :
+        :
 
 To keep as close contact to spreadsheet users, row and column 1 have
 index 1 too in the C<cell> element of the sheet hash, so cell "A1" is
@@ -750,7 +750,7 @@ Tries to convert the given file, string, or stream to the data
 structure described above.
 
 Processing Excel data from a stream or content is supported through
-a File::Temp temporary file or IO::Scalar when available.  
+a File::Temp temporary file or IO::Scalar when available.
 
 ReadSXC does preserve sheet order as of version 0.20.
 
@@ -783,7 +783,9 @@ See L<Cell Attributes> below.
 =item clip
 
 If set, C<ReadData ()> will remove all trailing lines and columns per
-sheet that have no visual data.
+sheet that have no visual data. If a sheet has no data at all, the
+sheet will be skipped entirely when this attribute is true.
+
 This option is only valid if C<cells> is true. The default value is
 true if C<cells> is true, and false otherwise.
 
