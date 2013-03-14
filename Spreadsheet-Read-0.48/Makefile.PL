@@ -10,7 +10,7 @@ unless (exists $ENV{AUTOMATED_TESTING} and $ENV{AUTOMATED_TESTING} == 1) {
 	  [ "ss2tk",	"Show a Spreadsheet in Perl/Tk"			],
 	  [ "xls2csv",	"Wrapper around xlscat for easy XLS => CSV"	],
 	  ) {
-	prompt ("Do you want to install '$_->[0]' ($_->[1]) ? ", "n") =~ m/[Yy]/ and
+	prompt ("Do you want to install '$_->[0]' ($_->[1]) ? ", "y") =~ m/[Yy]/ and
 	    push @exe, "examples/$_->[0]";
 	}
     }
@@ -48,6 +48,7 @@ my %wm = (
 #	"Tk::NoteBook"			=> 4.009,
 #	"Tk::TableMatrix::Spreadsheet"	=> 1.2,
 	},
+    macro        => { TARFLAGS   => "--format=ustar -c -v -f", },
     );
 $ExtUtils::MakeMaker::VERSION > 6.30 and $wm{LICENSE} = "perl";
 

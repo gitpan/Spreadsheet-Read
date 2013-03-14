@@ -1,0 +1,28 @@
+---
+abstract: 'Read the data from a spreadsheet'
+author:
+  - 'H.Merijn Brand <h.merijn@procura.nl>'
+build_requires:
+  ExtUtils::MakeMaker: 0
+configure_requires:
+  ExtUtils::MakeMaker: 0
+dynamic_config: 1
+generated_by: 'ExtUtils::MakeMaker version 6.64, CPAN::Meta::Converter version 2.120921'
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: Spreadsheet-Read
+no_index:
+  directory:
+    - t
+    - inc
+requires:
+  Carp: 0
+  Data::Dumper: 0
+  Exporter: 0
+  File::Temp: 0.22
+  IO::Scalar: 0
+  Test::More: 0.88
+  Test::NoWarnings: 0
+version: 0.48
