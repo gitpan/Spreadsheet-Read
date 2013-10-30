@@ -35,7 +35,7 @@ optional_features:
 provides: 
   Spreadsheet::Read: 
     file: Read.pm
-    version: '0.50'
+    version: '0.51'
 recommends: 
   File::Temp: '0.2304'
   IO::Scalar: 0
@@ -53,4 +53,4 @@ requires:
 resources: 
   license: http://dev.perl.org/licenses/
   repository: http://repo.or.cz/r/Spreadsheet-Read.git
-version: '0.50'
+version: '0.51'
