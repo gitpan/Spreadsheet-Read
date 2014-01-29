@@ -28,17 +28,18 @@ my %wm = (
 	# Core modules
 	"Exporter"			=> 0,
 	"Carp"				=> 0,
-	"Data::Dumper"			=> 0,
+	"Data::Peek"			=> 0,
 	"File::Temp"			=> 0.22,
 	"IO::Scalar"			=> 0,	# Optional
 
 	# Backend parsers, all optional
 #	"Text::CSV"			=> 1.32,
 #	"Text::CSV_PP"			=> 1.31,
-#	"Text::CSV_XS"			=> 1.02,
+#	"Text::CSV_XS"			=> 1.04,
 #	"Spreadsheet::ReadSXC"		=> 0.20,
-#	"Spreadsheet::ParseExcel"	=> 0.26,
+#	"Spreadsheet::ParseExcel"	=> 0.34,
 #	"Spreadsheet::ParseExcel::FmtDefault" => 0,
+#	"Spreadsheet::ParseXLSX"	=> 0.13,
 #	"Spreadsheet::XLSX"		=> 0.13,
 #	"Spreadsheet::Perl"		=> 0,	# Not yet
 
@@ -47,7 +48,7 @@ my %wm = (
 	"Test::NoWarnings"		=> 0,
 
 	# for ss2tk
-#	"Tk"				=> 804.031,
+#	"Tk"				=> 804.032,
 #	"Tk::NoteBook"			=> 4.009,
 #	"Tk::TableMatrix::Spreadsheet"	=> 1.2,
 	},
