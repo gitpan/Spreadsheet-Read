@@ -28,11 +28,12 @@ my %wm = (
 	# Core modules
 	"Exporter"			=> 0,
 	"Carp"				=> 0,
-	"Data::Peek"			=> 0,
+	"Data::Dumper"			=> 0,
 	"File::Temp"			=> 0.22,
 	"IO::Scalar"			=> 0,	# Optional
 
 	# Backend parsers, all optional
+	# Versions also need to be declared inside Read.pm !
 #	"Text::CSV"			=> 1.32,
 #	"Text::CSV_PP"			=> 1.31,
 #	"Text::CSV_XS"			=> 1.04,
