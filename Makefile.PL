@@ -10,6 +10,7 @@ unless (exists $ENV{AUTOMATED_TESTING} and $ENV{AUTOMATED_TESTING} == 1) {
     for ( [ "xlscat",	"Convert Spreadsheet to plain text or CSV"	],
 	  [ "xlsgrep",	"Grep pattern from Spreadsheet"			],
 	  [ "ss2tk",	"Show a Spreadsheet in Perl/Tk"			],
+	  [ "ssdiff",	"Show diff between two spreadsheets"		],
 	  [ "xls2csv",	"Wrapper around xlscat for easy XLS => CSV"	],
 	  ) {
 	prompt ("Do you want to install '$_->[0]' ($_->[1]) ? ", "y") =~ m/[Yy]/ and
@@ -89,7 +90,7 @@ sub postamble
 	q{	sandbox/leaktest $(FULLPERLRUN) "test_harness($(TEST_VERBOSE), '$(INST_LIB)', '$(INST_ARCHLIB)')" $(TEST_FILES)},
 	'',
 	'spellcheck:',
-	'	pod-spell-check --aspell',
+	'	pod-spell-check --aspell --ispell',
 	'',
 	'checkmeta:	spellcheck',
 	'	perl sandbox/genMETA.pl -c',

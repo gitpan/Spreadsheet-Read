@@ -25,7 +25,7 @@ package Spreadsheet::Read;
 use strict;
 use warnings;
 
-our $VERSION = "0.54";
+our $VERSION = "0.55";
 sub  Version { $VERSION }
 
 use Carp;
@@ -1212,6 +1212,12 @@ offers a Pure Perl implementation of a spreadsheet engine. Users that want
 this format to be supported in Spreadsheet::Read are hereby motivated to
 offer patches. It's not high on my TODO-list.
 
+=item Spreadsheet::CSV
+
+http://metacpan.org/release/Spreadsheet-CSV
+offers the interesting approach of seeing all supported spreadsheet formats
+as if it were CSV, mimicking the Text::CSV_XS interface.
+
 =item xls2csv
 
 http://metacpan.org/release/xls2csv offers an alternative for my C<xlscat -c>,
@@ -1226,7 +1232,7 @@ H.Merijn Brand, <h.m.brand@xs4all.nl>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2005-2014 H.Merijn Brand
+Copyright (C) 2005-2015 H.Merijn Brand
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
