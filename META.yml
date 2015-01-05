@@ -35,7 +35,7 @@ optional_features:
 provides: 
   Spreadsheet::Read: 
     file: Read.pm
-    version: '0.55'
+    version: '0.56'
 recommends: 
   Data::Peek: '0.42'
   File::Temp: '0.2304'
@@ -55,4 +55,4 @@ requires:
 resources: 
   license: http://dev.perl.org/licenses/
   repository: http://repo.or.cz/r/Spreadsheet-Read.git
-version: '0.55'
+version: '0.56'
